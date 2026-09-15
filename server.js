@@ -1203,6 +1203,26 @@ async function startTelegramPolling() {
 }
 
 // -------------------------------------------------------------
+// ⏰ ANTI-SLEEP HEARTBEAT (KEEPS RENDER INSTANCE AWAKE 24/7)
+// -------------------------------------------------------------
+const PING_INTERVAL_MS = 8 * 60 * 1000; // Ping every 8 minutes (Render sleeps after 15 mins)
+
+function startKeepAlivePing() {
+    const pingUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL;
+    if (!pingUrl || !pingUrl.startsWith('https://')) return;
+
+    console.log(`⏰ Anti-Sleep Keep-Alive activated for: ${pingUrl}`);
+    setInterval(async () => {
+        try {
+            await axios.get(`${pingUrl}/api/config`, { timeout: 8000 });
+            console.log(`💓 Keep-Alive Ping sent at ${new Date().toLocaleTimeString()}`);
+        } catch (e) {
+            // Keep alive request pinged
+        }
+    }, PING_INTERVAL_MS);
+}
+
+// -------------------------------------------------------------
 // 🚀 SERVER STARTUP
 // -------------------------------------------------------------
 app.listen(PORT, async () => {
@@ -1216,4 +1236,5 @@ app.listen(PORT, async () => {
 
     await syncFromGoogleSheets();
     startTelegramPolling();
+    startKeepAlivePing();
 });
