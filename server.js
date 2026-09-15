@@ -346,8 +346,8 @@ app.post('/api/order', async (req, res) => {
                 `📦 <b>Package:</b> ${orderData.package_type}\n` +
                 `💰 <b>Amount:</b> ${orderData.price}\n` +
                 `🧾 <b>TxRef:</b> <code>${orderData.tx_ref}</code>\n\n` +
-                `⏳ <b>EN:</b> Nathanael is verifying your transaction. Your <b>35-Day License Key</b> and website login guide will be sent here on Telegram shortly.\n\n` +
-                `⏳ <b>AM:</b> የላኩት መረጃ እየተረጋገጠ ነው። የ <b>35 ቀኑን License Key</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
+                `⏳ <b>EN:</b> ICE Core Admins are verifying your transaction. Your <b>35-Day License Key</b> and website login guide will be sent here on Telegram shortly.\n\n` +
+                `⏳ <b>AM:</b> አድሚኖች የላኩትን መረጃ እያረጋገጡ ነው። የ <b>35 ቀኑን License Key</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
                 `Thank you for choosing ICE Trading Academy! 🚀`;
 
             await sendTelegram('sendMessage', {
@@ -851,7 +851,7 @@ async function handleMessage(msg) {
             `💡 <b>How it works / አሰራር፦</b>\n` +
             `Share this link with fellow traders. When they enroll in the ICE program, you earn <b>150 ETB commission</b> instantly added to your balance!\n` +
             `ይህንን ሊንክ ለትሬደር ጓደኞችዎ ያጋሩ። በእርስዎ ሊንክ ሲመዘገቡ <b>150 ብር ኮሚሽን</b> ያገኛሉ።\n\n` +
-            `Withdraw anytime via Telebirr.`;
+            `📅 <b>Payout Schedule:</b> Withdrawals are processed <b>every SUNDAY (እሁድ ቀን ብቻ)</b> via Telebirr.`;
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
@@ -872,8 +872,9 @@ async function handleMessage(msg) {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: `💰 <b>Your Referral Balance / የእርስዎ ባላንስ፦</b> <b>${balance} ETB</b>\n\n` +
-                `Minimum withdrawal threshold is <b>150 ETB</b>.\n\n` +
-                `Tap <b>"📥 Withdraw Commission"</b> to withdraw via Telebirr.`,
+                `📅 <b>Payout Schedule:</b> Withdrawals are available <b>every SUNDAY (እሁድ ቀን ብቻ)</b> once a week.\n` +
+                `የሪፈራል ኮሚሽን ማውጣት የሚቻለው በሳምንት አንድ ቀን (እሁድ ብቻ) ነው።\n\n` +
+                `Minimum withdrawal threshold is <b>150 ETB</b>.`,
             parse_mode: 'HTML',
             reply_markup: MAIN_KEYBOARD_EN
         });
@@ -902,9 +903,29 @@ async function handleMessage(msg) {
         return;
     }
 
-    // 📥 Withdraw Commission
+    // 📥 Withdraw Commission (SUNDAY ONLY / እሁድ ቀን ብቻ)
     if (text === '📥 Withdraw Commission' || text === '📥 ብር ማውጫ (Withdraw)') {
         const currentPoints = users[userId]?.points || 0;
+
+        // Check Ethiopian / East Africa Time (EAT = UTC+3)
+        const nowEAT = new Date(Date.now() + 3 * 3600 * 1000);
+        const dayOfWeek = nowEAT.getUTCDay(); // 0 = Sunday
+
+        if (dayOfWeek !== 0) {
+            await sendTelegram('sendMessage', {
+                chat_id: chatId,
+                text: `📅 <b>Commission Payout Schedule / የብር ማውጫ መርሃ-ግብር</b>\n\n` +
+                    `⚠️ <b>EN:</b> Commission withdrawals are processed <b>only on SUNDAYS (እሁድ ቀን ብቻ)</b> once a week.\n\n` +
+                    `⚠️ <b>AM:</b> የሪፈራል ኮሚሽን ማውጣት የሚቻለው <b>በሳምንት አንድ ቀን (እሁድ ብቻ)</b> ነው።\n\n` +
+                    `💰 <b>Your Current Balance / የእርስዎ ባላንስ፦</b> <b>${currentPoints} ETB</b>\n` +
+                    `📅 <b>Next Payout Day:</b> This coming Sunday (የሚቀጥለው እሁድ)\n\n` +
+                    `Please return on Sunday to request your Telebirr payout transfer!`,
+                parse_mode: 'HTML',
+                reply_markup: MAIN_KEYBOARD_EN
+            });
+            return;
+        }
+
         if (currentPoints < 150) {
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
@@ -920,7 +941,7 @@ async function handleMessage(msg) {
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `📥 <b>Telebirr Commission Withdrawal / የቴሌብር ብር ማውጫ</b>\n\n` +
+            text: `📥 <b>Telebirr Commission Withdrawal (Sunday Payout) / የቴሌብር ብር ማውጫ</b>\n\n` +
                 `Amount to withdraw: <b>${currentPoints} ETB</b>\n\n` +
                 `📱 <b>Step 1/2:</b> Enter your <b>Telebirr phone number</b> (e.g. <code>0912345678</code>):\nየቴሌብር ስልክ ቁጥርዎን ያስገቡ፦`,
             parse_mode: 'HTML',
