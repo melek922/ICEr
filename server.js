@@ -362,8 +362,8 @@ app.post('/api/order', async (req, res) => {
                 `📦 <b>Package:</b> ${orderData.package_type}\n` +
                 `💰 <b>Amount:</b> ${orderData.price}\n` +
                 `🧾 <b>TxRef:</b> <code>${orderData.tx_ref}</code>\n\n` +
-                `⏳ <b>EN:</b> ICE Core Admins are verifying your transaction. Your <b>35-Day License Key</b> and website login guide will be sent here on Telegram shortly.\n\n` +
-                `⏳ <b>AM:</b> አድሚኖች የላኩትን መረጃ እያረጋገጡ ነው። የ <b>35 ቀኑን License Key</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
+                `⏳ <b>EN:</b> ICE Admins are verifying your transaction. Your <b>License Key</b> and website login guide will be sent here on Telegram shortly.\n\n` +
+                `⏳ <b>AM:</b> አድሚኖች የላኩትን መረጃ እያረጋገጡ ነው። የ <b>License Key</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
                 `Thank you for choosing ICE Trading Academy! 🚀`;
 
             await sendTelegram('sendMessage', {
@@ -908,8 +908,8 @@ async function handleMessage(msg) {
             `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
             `👤 <b>Name:</b> ${escapeHTML(studentName)}\n` +
             `📝 <b>Note:</b> ${escapeHTML(userCaption) || 'Receipt Screenshot'}\n\n` +
-            `⏳ <b>EN:</b> ICE Core Admins are verifying your receipt screenshot. Your <b>35-Day License Key</b> and website login instructions will be sent here on Telegram shortly.\n\n` +
-            `⏳ <b>AM:</b> አድሚኖች የላኩትን ደረሰኝ እያረጋገጡ ነው። የ <b>35 ቀኑ የፈቃድ ቁልፍ (License Key)</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
+            `⏳ <b>EN:</b> ICE Admins are verifying your receipt screenshot. Your <b>License Key</b> and website login instructions will be sent here on Telegram shortly.\n\n` +
+            `⏳ <b>AM:</b> አድሚኖች የላኩትን ደረሰኝ እያረጋገጡ ነው። የ <b>License Key</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
             `Thank you for choosing ICE Trading Academy! 🚀`;
 
         await sendTelegram('sendMessage', {
@@ -1002,7 +1002,7 @@ async function handleMessage(msg) {
     if (text.startsWith('/start')) {
         const welcomeMsg = `👋 <b>Welcome to ICE Trading Psychology Academy!</b>\n` +
             `👋 <b>እንኳን ወደ ICE Trading Psychology Academy በሰላም መጡ!</b>\n\n` +
-            `🧠 <b>ICE CORE — Master Your Trading Psychology & Discipline</b>\n` +
+            `🧠 <b>ICE — Master Your Trading Psychology & Discipline</b>\n` +
             `ስሜትዎን ይቆጣጠሩ፣ የትሬዲንግ ፍርሃትን ያስወግዱ፣ ጠንካራ የሪስክ ማኔጅመንት ዲሲፕሊን ይገንቡ።\n\n` +
             `🌟 <b>Choose Your Path / የስልጠና አማራጮች፦</b>\n` +
             `1️⃣ <b>Telegram Group:</b> <code>1,000 ETB / $5 / mo</code>\n` +
@@ -1070,7 +1070,7 @@ async function handleMessage(msg) {
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
                 text: `🔑 <b>Your Active License Key / የነቃው License Key፦</b>\n\n<code>${licenseKey}</code>\n\n` +
-                    `Use this key on <a href="${WEBSITE_URL}">${WEBSITE_URL}</a> to access your 35-Day course.`,
+                    `Use this key on <a href="${WEBSITE_URL}">${WEBSITE_URL}</a> to access your course.`,
                 parse_mode: 'HTML',
                 reply_markup: MAIN_KEYBOARD_EN
             });
@@ -1151,10 +1151,10 @@ async function handleMessage(msg) {
     }
 
     // 🌐 Open Website
-    if (text === '🌐 Open Website' || text === '🌐 ዌብሳይቱን ክፈት (ICE Core)') {
+    if (text === '🌐 Open Website' || text === '🌐 ዌብሳይቱን ክፈት (ICE)') {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `🌐 <b>ICE Core Platform / ኦፊሴላዊ ድረ-ገጽ፦</b>\n\n<a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n\nLogin with your registered email and License Key.`,
+            text: `🌐 <b>ICE Platform / ኦፊሴላዊ ድረ-ገጽ፦</b>\n\n<a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n\nLogin with your registered email and License Key.`,
             parse_mode: 'HTML',
             reply_markup: MAIN_KEYBOARD_EN
         });
@@ -1415,7 +1415,7 @@ async function handleMessage(msg) {
         // Acknowledge to student
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `✅ <b>Your message has been sent to ICE Core Admins! / መልዕክትዎ ለአድሚኖች ደርሷል!</b>\n\n` +
+            text: `✅ <b>Your message has been sent to ICE Admins! / መልዕክትዎ ለአድሚኖች ደርሷል!</b>\n\n` +
                 `We have received your message and will reply to you right here on Telegram shortly.\n` +
                 `መልዕክትዎ ደርሶናል፤ አድሚኖች ተመልክተው በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይመልሱልዎታል።`,
             parse_mode: 'HTML',
