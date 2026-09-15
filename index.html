@@ -57,10 +57,16 @@
                 transform: translateY(0) scale(1);
             }
         }
+
+        .pkg-active {
+            border-color: #00e5ff !important;
+            background: linear-gradient(180deg, rgba(0, 229, 255, 0.08) 0%, rgba(14, 26, 47, 1) 100%) !important;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+        }
     </style>
 </head>
 
-<body class="text-slate-200 min-h-screen flex flex-col justify-between p-4 sm:p-6 max-w-md mx-auto">
+<body class="text-slate-200 min-h-screen flex flex-col justify-between p-4 sm:p-6 max-w-lg mx-auto">
 
     <!-- Top Navigation Bar -->
     <div class="flex items-center justify-between mb-4">
@@ -70,7 +76,7 @@
             </div>
             <div>
                 <h1 class="text-sm font-bold text-white tracking-wide">ICE CORE</h1>
-                <p class="text-[10px] text-cyan-400 font-medium tracking-tight">35-Day Mastery Program</p>
+                <p class="text-[10px] text-cyan-400 font-medium tracking-tight">Trading Psychology Academy</p>
             </div>
         </div>
 
@@ -83,6 +89,132 @@
 
     <!-- Main Card Content -->
     <main class="space-y-4">
+
+        <!-- 🌟 Choose Your Path (4 Tiers Matching Design) -->
+        <div class="space-y-2.5">
+            <div class="text-center">
+                <h2 class="text-lg font-black text-white tracking-tight" id="txtChoosePathTitle">Choose Your Path</h2>
+                <p class="text-xs text-slate-400" id="txtChoosePathSub">Select the perfect trading psychology program for your level.</p>
+            </div>
+
+            <!-- 4 Selectable Package Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="packagesGrid">
+                
+                <!-- 1. Telegram Group -->
+                <div onclick="selectPackage('telegram_group')" id="card_telegram_group" class="package-card relative rounded-xl border border-slate-800 bg-[#0e1a2f] p-3.5 cursor-pointer hover:border-cyan-500/50 transition-all active:scale-[0.99] flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-white flex items-center gap-1.5" id="title_telegram_group">
+                                <i data-lucide="send" class="w-3.5 h-3.5 text-cyan-400"></i> Telegram Group
+                            </h3>
+                            <div id="radio_telegram_group" class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-cyan-400 hidden"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="text-base font-black text-white font-mono" id="display_price_telegram_group">1,000 ETB</span>
+                            <span class="text-[10px] text-slate-400" id="sub_price_telegram_group">/ month</span>
+                        </div>
+                        <ul class="mt-2.5 space-y-1 text-[11px] text-slate-300">
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_tg_1">Daily video lectures</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_tg_2">1 Live session per week</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. 30-Day Mastery Program (RECOMMENDED) -->
+                <div onclick="selectPackage('mastery_30day')" id="card_mastery_30day" class="package-card pkg-active relative rounded-xl border-2 border-cyan-400 bg-[#0e1a2f] p-3.5 cursor-pointer transition-all active:scale-[0.99] flex flex-col justify-between">
+                    <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-cyan-400 text-[9px] font-black tracking-wider text-slate-950 uppercase shadow-sm">
+                        Recommended
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-cyan-300 flex items-center gap-1.5" id="title_mastery_30day">
+                                <i data-lucide="brain" class="w-3.5 h-3.5 text-cyan-400"></i> 30-Day Mastery Program
+                            </h3>
+                            <div id="radio_mastery_30day" class="w-4 h-4 rounded-full border border-cyan-400 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="text-base font-black text-white font-mono" id="display_price_mastery_30day">6,000 ETB</span>
+                            <span class="text-[10px] text-slate-400" id="sub_price_mastery_30day">/ month</span>
+                        </div>
+                        <ul class="mt-2.5 space-y-1 text-[11px] text-slate-300">
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_mast_1">Full Access to Curriculum</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_mast_2">Daily Challenges</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_mast_3">Progress Tracking</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 3. 1-on-1 Mentorship -->
+                <div onclick="selectPackage('mentorship_1on1')" id="card_mentorship_1on1" class="package-card relative rounded-xl border border-slate-800 bg-[#0e1a2f] p-3.5 cursor-pointer hover:border-cyan-500/50 transition-all active:scale-[0.99] flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-white flex items-center gap-1.5" id="title_mentorship_1on1">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-indigo-400"></i> 1-on-1 Mentorship
+                            </h3>
+                            <div id="radio_mentorship_1on1" class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-cyan-400 hidden"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="text-base font-black text-white font-mono" id="display_price_mentorship_1on1">13,500 ETB</span>
+                            <span class="text-[10px] text-slate-400" id="sub_price_mentorship_1on1">($100 / month)</span>
+                        </div>
+                        <ul class="mt-2.5 space-y-1 text-[11px] text-slate-300">
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_ment_1">2x 45-min sessions/week</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_ment_2">Daily videos & challenges</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-cyan-400 shrink-0"></i> <span id="feat_ment_3">Priority Q&A support</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 4. Negadras Tier -->
+                <div onclick="selectPackage('negadras_tier')" id="card_negadras_tier" class="package-card relative rounded-xl border border-slate-800 bg-[#0e1a2f] p-3.5 cursor-pointer hover:border-amber-500/50 transition-all active:scale-[0.99] flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5" id="title_negadras_tier">
+                                <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> Negadras Tier
+                            </h3>
+                            <div id="radio_negadras_tier" class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-cyan-400 hidden"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="text-base font-black text-amber-300 font-mono" id="display_price_negadras_tier">3,000 ETB</span>
+                            <span class="text-[10px] text-amber-400/80">(50% Off)</span>
+                        </div>
+                        <ul class="mt-2.5 space-y-1 text-[11px] text-slate-300">
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-amber-400 shrink-0"></i> <span id="feat_neg_1">50% discount on standard pricing</span>
+                            </li>
+                            <li class="flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3 h-3 text-amber-400 shrink-0"></i> <span id="feat_neg_2">Available to Negadras Level 2 only</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
 
         <!-- 1. Broker Partner Discount Box -->
         <div class="rounded-xl border border-cyan-500/30 bg-[#0e1a2f] p-3.5 transition-all">
@@ -123,7 +255,7 @@
         <!-- 3. Dynamic Price Instructions -->
         <div class="text-center pt-1 pb-0.5">
             <p class="text-xs text-slate-400" id="txtSendInstruction">
-                Send exactly <span class="font-bold text-white text-sm" id="displayAmount">5,999 ETB</span> via Telebirr to:
+                Send exactly <span class="font-bold text-white text-sm" id="displayAmount">6,000 ETB</span> via Telebirr to:
             </p>
         </div>
 
@@ -188,7 +320,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold text-slate-200" id="txtUploadPromptTitle">Tap to Upload Receipt Screenshot</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5" id="txtUploadPromptSub">PNG, JPG, JPEG (Max 10MB)</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5" id="txtUploadPromptSub">PNG, JPG, JPEG (Max 15MB)</p>
                         </div>
                     </div>
 
@@ -230,7 +362,7 @@
             </div>
             <h3 class="text-base font-bold text-white" id="txtSuccessTitle">Payment Submitted Successfully!</h3>
             <p class="text-xs text-slate-300 leading-relaxed" id="txtSuccessDesc">
-                Your transaction has been sent to ICE Admins. You will receive your <b>35-Day License Key</b> on Telegram shortly.
+                Your transaction has been sent to ICE Core Admins. You will receive your <b>License Key</b> and course access on Telegram shortly.
             </p>
             <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono text-cyan-400" id="confirmedOrderId">
                 ORD-XXXXX
@@ -252,11 +384,50 @@
     <script>
         lucide.createIcons();
 
+        // 📦 4 Package Paths Definition
+        const PACKAGES = {
+            telegram_group: {
+                id: 'telegram_group',
+                titleEn: 'Telegram Group',
+                titleAm: 'የቴሌግራም ግሩፕ (Telegram Group)',
+                baseTB: 1000,
+                baseUSDT: 5,
+                subPriceEn: '/ month',
+                subPriceAm: '/ በወር'
+            },
+            mastery_30day: {
+                id: 'mastery_30day',
+                titleEn: '30-Day Mastery Program',
+                titleAm: 'የ 30-ቀናት ማስተሪ ፕሮግራም (Mastery Program)',
+                baseTB: 6000,
+                baseUSDT: 45,
+                subPriceEn: '/ month',
+                subPriceAm: '/ በወር'
+            },
+            mentorship_1on1: {
+                id: 'mentorship_1on1',
+                titleEn: '1-on-1 Mentorship',
+                titleAm: 'የ 1-ለ-1 የግል መካሪ (1-on-1 Mentorship)',
+                baseTB: 13500,
+                baseUSDT: 100,
+                subPriceEn: '($100 / month)',
+                subPriceAm: '($100 / በወር)'
+            },
+            negadras_tier: {
+                id: 'negadras_tier',
+                titleEn: 'Negadras Tier (50% Off)',
+                titleAm: 'የነጋድራስ ልዩ ቅናሽ (Negadras Tier - 50%)',
+                baseTB: 3000,
+                baseUSDT: 23,
+                subPriceEn: '(50% Off)',
+                subPriceAm: '(50% ቅናሽ)'
+            }
+        };
+
         // State Management
         let currentLang = 'en'; // 'en' or 'am'
         let currentMethod = 'telebirr'; // 'telebirr' or 'crypto'
-        let baseTelebirrPrice = 5999;
-        let baseUsdtPrice = 45;
+        let selectedPackageId = 'mastery_30day';
         let telebirrNumber = '0941550511';
         let accountHolderName = 'Nathanael';
         let usdtAddress = 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
@@ -303,6 +474,8 @@
         const translations = {
             en: {
                 langBtn: 'English',
+                choosePathTitle: 'Choose Your Path',
+                choosePathSub: 'Select the perfect trading psychology program for your level.',
                 brokerTitle: 'I registered using an ICE CORE Partner Broker Link (-30%)',
                 brokerSub: 'Get 30% off your subscription if you use our IB link on Exness, HFM, Vantage, GatesFX, or Pepperstone.',
                 lblBrokerWallet: 'Broker Account / Wallet ID *',
@@ -318,16 +491,29 @@
                 lblTxRefUSDT: 'USDT Transaction Hash (TxID) *',
                 lblReceipt: 'Payment Screenshot (Receipt) *',
                 uploadTitle: 'Tap to Upload Receipt Screenshot',
-                uploadSub: 'PNG, JPG, JPEG (Max 10MB)',
+                uploadSub: 'PNG, JPG, JPEG (Max 15MB)',
                 incompleteNotice: 'Please fill in all required fields and attach your screenshot to proceed.',
                 btnVerifyTB: 'Verify Telebirr Payment',
                 btnVerifyUSDT: 'Verify USDT Payment',
                 successTitle: 'Payment Submitted Successfully!',
-                successDesc: 'Your transaction has been sent to ICE Admins. You will receive your 35-Day License Key on Telegram shortly.',
-                copied: 'Copied to clipboard!'
+                successDesc: 'Your transaction has been sent to ICE Core Admins. You will receive your <b>License Key</b> on Telegram shortly.',
+                copied: 'Copied to clipboard!',
+                // Feature items
+                feat_tg_1: 'Daily video lectures',
+                feat_tg_2: '1 Live session per week',
+                feat_mast_1: 'Full Access to Curriculum',
+                feat_mast_2: 'Daily Challenges',
+                feat_mast_3: 'Progress Tracking',
+                feat_ment_1: '2x 45-min sessions/week',
+                feat_ment_2: 'Daily videos & challenges',
+                feat_ment_3: 'Priority Q&A support',
+                feat_neg_1: '50% discount on standard pricing',
+                feat_neg_2: 'Available to Negadras Level 2 only'
             },
             am: {
                 langBtn: 'አማርኛ',
+                choosePathTitle: 'የስልጠና ምርጫዎን ይምረጡ',
+                choosePathSub: 'ለእርስዎ ደረጃ የሚስማማውን የትሬዲንግ ሳይኮሎጂ ስልጠና ይምረጡ።',
                 brokerTitle: 'በ ICE CORE ፓርትነር ብሮከር ሊንክ ተመዝግቤያለሁ (-30%)',
                 brokerSub: 'በእኛ የ Exness, HFM, Vantage, GatesFX ወይም Pepperstone ሊንክ ከተመዘገቡ የ 30% ቅናሽ ያገኛሉ።',
                 lblBrokerWallet: 'የብሮከር ዋሌት / አካውንት መለያ (Wallet ID) *',
@@ -343,15 +529,55 @@
                 lblTxRefUSDT: 'የክሪፕቶ የግብይት ቁጥር (TxID Hash) *',
                 lblReceipt: 'የክፍያ ደረሰኝ ፎቶ (ስክሪን ሻት) *',
                 uploadTitle: 'የደረሰኝ ስክሪን ሻት ለመጫን እዚህ ይጫኑ',
-                uploadSub: 'PNG, JPG, JPEG (እስከ 10MB)',
+                uploadSub: 'PNG, JPG, JPEG (እስከ 15MB)',
                 incompleteNotice: 'ለማረጋገጥ እባክዎን ሁሉንም መረጃዎች ይሙሉ እና የደረሰኝ ፎቶ ያያይዙ።',
                 btnVerifyTB: 'የቴሌብር ክፍያውን አረጋግጥ',
                 btnVerifyUSDT: 'የ USDT ክፍያውን አረጋግጥ',
                 successTitle: 'ክፍያዎ በተሳካ ሁኔታ ተልኳል!',
-                successDesc: 'የክፍያ መረጃዎ ለአድሚኖች ደርሷል። የ 35 ቀኑን የፍቃድ ቁልፍ (License Key) በአጭር ጊዜ ውስጥ በቴሌግራም ይደርስዎታል።',
-                copied: 'ኮፒ ተደርጓል!'
+                successDesc: 'የክፍያ መረጃዎ ለ ICE Core አድሚኖች ደርሷል። የፍቃድ ቁልፉ (License Key) በአጭር ጊዜ ውስጥ በቴሌግራም ይደርስዎታል።',
+                copied: 'ኮፒ ተደርጓል!',
+                // Feature items
+                feat_tg_1: 'ዕለታዊ የቪዲዮ ትምህርቶች',
+                feat_tg_2: 'በሳምንት 1 የቀጥታ (Live) ስብሰባ',
+                feat_mast_1: 'ሙሉ የስልጠና ካሪኩለም መዳረሻ',
+                feat_mast_2: 'ዕለታዊ ተግባራዊ ፈተናዎች',
+                feat_mast_3: 'የዕድገት እና ውጤት ክትትል',
+                feat_ment_1: 'በሳምንት 2 የ 45-ደቂቃ የግል ስብሰባዎች',
+                feat_ment_2: 'ዕለታዊ ቪዲዮዎች እና ተግዳሮቶች',
+                feat_ment_3: 'ቀዳሚ የጥያቄና መልስ ድጋፍ',
+                feat_neg_1: 'የ 50% ቅናሽ በመደበኛ ዋጋ ላይ',
+                feat_neg_2: 'ለነጋድራስ ሌቭል 2 ተማሪዎች ብቻ'
             }
         };
+
+        function selectPackage(pkgId) {
+            selectedPackageId = pkgId;
+            
+            // Update Card Highlight Classes
+            const pkgKeys = Object.keys(PACKAGES);
+            pkgKeys.forEach(k => {
+                const card = document.getElementById(`card_${k}`);
+                const radio = document.getElementById(`radio_${k}`);
+                if (!card || !radio) return;
+
+                const dot = radio.querySelector('div');
+                if (k === selectedPackageId) {
+                    card.classList.add('pkg-active');
+                    card.classList.remove('border-slate-800');
+                    radio.classList.add('border-cyan-400');
+                    radio.classList.remove('border-slate-600');
+                    if (dot) dot.classList.remove('hidden');
+                } else {
+                    card.classList.remove('pkg-active');
+                    card.classList.add('border-slate-800');
+                    radio.classList.remove('border-cyan-400');
+                    radio.classList.add('border-slate-600');
+                    if (dot) dot.classList.add('hidden');
+                }
+            });
+
+            updateDisplay();
+        }
 
         function toggleLanguage() {
             currentLang = currentLang === 'en' ? 'am' : 'en';
@@ -361,6 +587,8 @@
         function updateLanguageUI() {
             const t = translations[currentLang];
             document.getElementById('langLabel').innerText = t.langBtn;
+            document.getElementById('txtChoosePathTitle').innerText = t.choosePathTitle;
+            document.getElementById('txtChoosePathSub').innerText = t.choosePathSub;
             document.getElementById('txtBrokerTitle').innerText = t.brokerTitle;
             document.getElementById('txtBrokerSub').innerText = t.brokerSub;
             document.getElementById('lblBrokerWallet').innerHTML = `<i data-lucide="wallet" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblBrokerWallet}`;
@@ -374,6 +602,19 @@
             document.getElementById('txtIncompleteNotice').innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-amber-400"></i> ${t.incompleteNotice}`;
             document.getElementById('txtSuccessTitle').innerText = t.successTitle;
             document.getElementById('txtSuccessDesc').innerHTML = t.successDesc;
+
+            // Features translation
+            document.getElementById('feat_tg_1').innerText = t.feat_tg_1;
+            document.getElementById('feat_tg_2').innerText = t.feat_tg_2;
+            document.getElementById('feat_mast_1').innerText = t.feat_mast_1;
+            document.getElementById('feat_mast_2').innerText = t.feat_mast_2;
+            document.getElementById('feat_mast_3').innerText = t.feat_mast_3;
+            document.getElementById('feat_ment_1').innerText = t.feat_ment_1;
+            document.getElementById('feat_ment_2').innerText = t.feat_ment_2;
+            document.getElementById('feat_ment_3').innerText = t.feat_ment_3;
+            document.getElementById('feat_neg_1').innerText = t.feat_neg_1;
+            document.getElementById('feat_neg_2').innerText = t.feat_neg_2;
+
             lucide.createIcons();
             updateDisplay();
         }
@@ -414,9 +655,11 @@
         function updateDisplay() {
             const t = translations[currentLang];
             const isDiscounted = document.getElementById('brokerDiscount').checked;
+            const pkg = PACKAGES[selectedPackageId] || PACKAGES.mastery_30day;
 
             if (currentMethod === 'telebirr') {
-                const price = isDiscounted ? Math.round(baseTelebirrPrice * 0.7) : baseTelebirrPrice;
+                const basePrice = pkg.baseTB;
+                const price = isDiscounted ? Math.round(basePrice * 0.7) : basePrice;
                 const formattedPrice = `${price.toLocaleString()} ETB`;
                 
                 document.getElementById('txtSendInstruction').innerHTML = t.sendViaTB.replace('{amount}', `<span class="font-bold text-white text-sm">${formattedPrice}</span>`);
@@ -427,7 +670,8 @@
                 document.getElementById('tx_ref').placeholder = 'E.G.  7K3DF9L';
                 document.getElementById('btnVerifyText').innerText = t.btnVerifyTB;
             } else {
-                const price = isDiscounted ? Math.round(baseUsdtPrice * 0.7) : baseUsdtPrice;
+                const basePrice = pkg.baseUSDT;
+                const price = isDiscounted ? Math.round(basePrice * 0.7) : basePrice;
                 const formattedPrice = `$${price} USDT`;
                 
                 document.getElementById('txtSendInstruction').innerHTML = t.sendViaUSDT.replace('{amount}', `<span class="font-bold text-white text-sm">${formattedPrice}</span>`);
@@ -457,14 +701,14 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. Image Type Validation (ምስል ብቻ እንዲሆን)
+            // 1. Image Type Validation
             if (!file.type.startsWith('image/')) {
                 alert(currentLang === 'en' ? '⚠️ Please select a valid image file (PNG, JPG, JPEG, WEBP).' : '⚠️ እባክዎ ትክክለኛ የምስል ፋይል ብቻ (PNG, JPG, JPEG) ይምረጡ።');
                 event.target.value = '';
                 return;
             }
 
-            // 2. Maximum Size Limit (እስከ 15MB)
+            // 2. Maximum Size Limit
             if (file.size > 15 * 1024 * 1024) {
                 alert(currentLang === 'en' ? '⚠️ Image is too large (Max 15MB).' : '⚠️ የምስሉ መጠን ከ 15MB በላይ ነው። እባክዎ ትንሽ ምስል ይምረጡ።');
                 event.target.value = '';
@@ -473,7 +717,7 @@
 
             document.getElementById('previewName').innerText = file.name;
             
-            // 3. Client-Side Image Compression & Resizing (ትላልቅ ምስል እንዳይሆን አውቶማቲክ ማስተካከያ)
+            // 3. Client-Side Image Compression & Resizing
             compressImage(file, (compressedBase64) => {
                 receiptBase64 = compressedBase64;
                 document.getElementById('previewImg').src = receiptBase64;
@@ -493,7 +737,7 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const maxDimension = 1600; // Optimal for sharp text & small filesize
+                    const maxDimension = 1600;
 
                     if (width > maxDimension || height > maxDimension) {
                         if (width > height) {
@@ -510,7 +754,6 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Export crisp JPEG at quality 0.82 (typically 150KB-300KB)
                     const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
                     callback(compressedDataUrl);
                 };
@@ -559,9 +802,13 @@
 
             const isDiscounted = document.getElementById('brokerDiscount').checked;
             const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
+            const pkg = PACKAGES[selectedPackageId] || PACKAGES.mastery_30day;
+
             const price = currentMethod === 'telebirr' 
-                ? (isDiscounted ? Math.round(baseTelebirrPrice * 0.7) : baseTelebirrPrice) + ' ETB'
-                : (isDiscounted ? Math.round(baseUsdtPrice * 0.7) : baseUsdtPrice) + ' USDT';
+                ? (isDiscounted ? Math.round(pkg.baseTB * 0.7) : pkg.baseTB).toLocaleString() + ' ETB'
+                : (isDiscounted ? Math.round(pkg.baseUSDT * 0.7) : pkg.baseUSDT) + ' USDT';
+
+            const packageName = isDiscounted ? `${pkg.titleEn} (Partner -30%)` : pkg.titleEn;
 
             const payload = {
                 user_id: telegramUserId,
@@ -570,7 +817,8 @@
                 email: document.getElementById('email').value.trim(),
                 telegram_username: telegramUsername,
                 broker_wallet_id: isDiscounted ? brokerWalletId : '',
-                package_type: isDiscounted ? 'ICE 35-Day (Partner -30%)' : 'ICE 35-Day Standard',
+                package_id: selectedPackageId,
+                package_type: packageName,
                 price: price,
                 payment_method: currentMethod === 'telebirr' ? 'TELEBIRR' : 'USDT TRC20',
                 tx_ref: document.getElementById('tx_ref').value.trim(),
@@ -607,7 +855,7 @@
         }
 
         // Initialize on load
-        updateDisplay();
+        selectPackage('mastery_30day');
         checkFormValidity();
     </script>
 </body>
