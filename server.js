@@ -248,12 +248,28 @@ app.post('/api/order', async (req, res) => {
         };
 
         for (const adminId of ADMIN_IDS) {
-            await sendTelegram('sendMessage', {
-                chat_id: adminId,
-                text: adminMsg,
-                parse_mode: 'HTML',
-                reply_markup: inlineKeyboard
-            });
+            let sent = false;
+            if (orderData.receipt_url && (orderData.receipt_url.startsWith('http://') || orderData.receipt_url.startsWith('https://'))) {
+                const photoRes = await sendTelegram('sendPhoto', {
+                    chat_id: adminId,
+                    photo: orderData.receipt_url,
+                    caption: adminMsg,
+                    parse_mode: 'HTML',
+                    reply_markup: inlineKeyboard
+                });
+                if (photoRes && photoRes.data && photoRes.data.ok) {
+                    sent = true;
+                }
+            }
+
+            if (!sent) {
+                await sendTelegram('sendMessage', {
+                    chat_id: adminId,
+                    text: adminMsg,
+                    parse_mode: 'HTML',
+                    reply_markup: inlineKeyboard
+                });
+            }
         }
 
         // 📩 Confirmation to Student on Telegram
