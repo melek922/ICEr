@@ -506,7 +506,30 @@
             const submitBtn = document.getElementById('submitBtn');
             const btnVerifyText = document.getElementById('btnVerifyText');
             submitBtn.disabled = true;
-            btnVerifyText.innerText = currentLang === 'en' ? 'Submitting...' : 'በመላክ ላይ...';
+            btnVerifyText.innerText = currentLang === 'en' ? 'Uploading Screenshot...' : 'ምስሉን በማስገባት ላይ...';
+
+            let uploadedReceiptUrl = receiptBase64;
+            try {
+                const uploadData = new FormData();
+                uploadData.append('file', receiptBase64);
+                uploadData.append('upload_preset', 'book_preset');
+
+                const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dlthi9a6h/image/upload', {
+                    method: 'POST',
+                    body: uploadData
+                });
+
+                if (uploadResponse.ok) {
+                    const uploadResult = await uploadResponse.json();
+                    if (uploadResult.secure_url) {
+                        uploadedReceiptUrl = uploadResult.secure_url;
+                    }
+                }
+            } catch (cloudErr) {
+                console.warn('Cloudinary upload fallback:', cloudErr);
+            }
+
+            btnVerifyText.innerText = currentLang === 'en' ? 'Submitting Order...' : 'ትዕዛዙን በመላክ ላይ...';
 
             const isDiscounted = document.getElementById('brokerDiscount').checked;
             const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
@@ -525,7 +548,7 @@
                 price: price,
                 payment_method: currentMethod === 'telebirr' ? 'TELEBIRR' : 'USDT TRC20',
                 tx_ref: document.getElementById('tx_ref').value.trim(),
-                receipt_url: receiptBase64
+                receipt_url: uploadedReceiptUrl
             };
 
             try {
