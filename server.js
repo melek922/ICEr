@@ -29,16 +29,28 @@ const USDT_ADDRESS = process.env.USDT_TRC20_ADDRESS || 'Txxxxxxxxxxxxxxxxxxxxxxx
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'rbkihpxg';
 const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || 'ice_preset';
 
-async function uploadToCloudinary(base64Data) {
-    if (!base64Data || !base64Data.startsWith('data:image')) {
-        return base64Data || '';
+// 🔄 Admin Reply Tracker (Maps admin notification message_id -> target user_id)
+const adminMessageMap = {};
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+async function uploadToCloudinary(fileInput) {
+    if (!fileInput) return '';
+    if (!fileInput.startsWith('data:image') && !fileInput.startsWith('http://') && !fileInput.startsWith('https://')) {
+        return fileInput;
     }
     try {
         console.log('☁️ Uploading receipt to Cloudinary server-side...');
         const response = await axios.post(
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
             {
-                file: base64Data,
+                file: fileInput,
                 upload_preset: CLOUDINARY_UPLOAD_PRESET
             }
         );
@@ -50,7 +62,7 @@ async function uploadToCloudinary(base64Data) {
     } catch (err) {
         console.error('❌ Cloudinary server upload error:', err.response ? err.response.data : err.message);
     }
-    return '';
+    return typeof fileInput === 'string' && fileInput.startsWith('http') ? fileInput : '';
 }
 
 // 📁 Local Data Files
@@ -324,18 +336,22 @@ app.post('/api/order', async (req, res) => {
                     parse_mode: 'HTML',
                     reply_markup: inlineKeyboard
                 });
-                if (photoRes && photoRes.data && photoRes.data.ok) {
+                if (photoRes && photoRes.data && photoRes.data.result) {
+                    adminMessageMap[photoRes.data.result.message_id] = orderData.user_id;
                     sent = true;
                 }
             }
 
             if (!sent) {
-                await sendTelegram('sendMessage', {
+                const sentRes = await sendTelegram('sendMessage', {
                     chat_id: adminId,
                     text: adminMsg,
                     parse_mode: 'HTML',
                     reply_markup: inlineKeyboard
                 });
+                if (sentRes && sentRes.data && sentRes.data.result) {
+                    adminMessageMap[sentRes.data.result.message_id] = orderData.user_id;
+                }
             }
         }
 
@@ -551,6 +567,7 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
         }
 
         // 🚀 Send License Key & Instructions to Student (Bilingual)
+        const emailDisplay = (order.email && !order.email.toLowerCase().includes('telegram')) ? ` (<code>${order.email}</code>)` : '';
         const studentDeliveryMsg = `🎉 <b>Congratulations! Your Payment is Approved!</b>\n` +
             `🎉 <b>እንኳን ደስ አለዎት! ክፍያዎ ጸድቋል!</b>\n\n` +
             `Your official License Key for the <b>ICE Trading Psychology (35-Day Mastery Program)</b> is ready:\n\n` +
@@ -559,7 +576,7 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
             `────────────────────\n` +
             `📚 <b>How to start your training (አጠቃቀም)፦</b>\n` +
             `1. Open the platform: <a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n` +
-            `2. Click <b>Register</b> and enter your email (<code>${order.email}</code>) & password\n` +
+            `2. Click <b>Register</b> and enter your email${emailDisplay} & password\n` +
             `3. Paste your License Key <code>${licenseKey}</code> when prompted\n` +
             `4. Complete the DISC personality assessment and begin Day 1!\n\n` +
             `Welcome aboard! 🚀\n<b>ICE Trading Academy</b>`;
@@ -712,7 +729,11 @@ async function handleCallbackQuery(cq) {
         const targetUserId = data.replace('replyprompt_', '');
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `💬 <b>To send a message to this student, use:</b>\n\n<code>/reply ${targetUserId} Hello, </code>`,
+            text: `💬 <b>Reply to Student (ID: <code>${targetUserId}</code>)</b>\n\n` +
+                  `You can reply in two easy ways:\n` +
+                  `1️⃣ <b>Swipe / Reply:</b> Simply swipe and reply to the message/receipt above directly in Telegram!\n` +
+                  `2️⃣ <b>Command:</b> Copy and send this command with your message:\n\n` +
+                  `<code>/reply ${targetUserId} </code>`,
             parse_mode: 'HTML'
         });
     }
@@ -722,7 +743,8 @@ async function handleCallbackQuery(cq) {
 async function handleMessage(msg) {
     const chatId = msg.chat.id;
     const text = msg.text || '';
-    const userId = msg.from.id.toString();
+    const caption = msg.caption || '';
+    const userId = msg.from ? msg.from.id.toString() : chatId.toString();
     const isAdmin = ADMIN_IDS.includes(userId);
 
     const users = loadUsers();
@@ -730,7 +752,7 @@ async function handleMessage(msg) {
     // Ensure User Record Exists
     if (!users[userId]) {
         users[userId] = {
-            name: msg.from.first_name || 'Trader',
+            name: `${msg.from.first_name || 'Trader'} ${msg.from.last_name || ''}`.trim(),
             username: msg.from.username || 'N/A',
             points: 0,
             joined_at: new Date().toISOString()
@@ -742,13 +764,161 @@ async function handleMessage(msg) {
                 users[userId].invited_by = inviterId;
                 await sendTelegram('sendMessage', {
                     chat_id: inviterId,
-                    text: `🔔 <b>New Referral / አዲስ ግብዣ!</b>\n\n<b>${msg.from.first_name}</b> started the bot using your link. When they enroll, you will earn <b>150 ETB commission</b>!`,
+                    text: `🔔 <b>New Referral / አዲስ ግብዣ!</b>\n\n<b>${escapeHTML(msg.from.first_name)}</b> started the bot using your link. When they enroll, you will earn <b>150 ETB commission</b>!`,
                     parse_mode: 'HTML'
                 });
             }
         }
         saveUsers(users);
         syncToGoogle('sync_user', { user_id: userId, ...users[userId] });
+    }
+
+    // -------------------------------------------------------------
+    // 💬 NATIVE TELEGRAM REPLY HANDLER (ADMIN SWIPES & REPLIES DIRECTLY)
+    // -------------------------------------------------------------
+    if (isAdmin && msg.reply_to_message) {
+        const replyTargetMsg = msg.reply_to_message;
+        let targetUserId = adminMessageMap[replyTargetMsg.message_id];
+
+        // Fallback: extract target user ID from text or caption of replied-to message
+        if (!targetUserId) {
+            const sourceContent = (replyTargetMsg.text || '') + ' ' + (replyTargetMsg.caption || '');
+            const match = sourceContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) ||
+                          sourceContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
+                          sourceContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
+                          sourceContent.match(/User ID:\s*(\d+)/i) ||
+                          sourceContent.match(/🆔\s*(\d+)/);
+            if (match && match[1]) {
+                targetUserId = match[1];
+            }
+        }
+
+        if (targetUserId) {
+            const replyContent = text || caption || '<i>(Attachment)</i>';
+
+            if (msg.photo && msg.photo.length > 0) {
+                const highestPhoto = msg.photo[msg.photo.length - 1];
+                await sendTelegram('sendPhoto', {
+                    chat_id: targetUserId,
+                    photo: highestPhoto.file_id,
+                    caption: `📩 <b>Message from ICE Academy Admin / ከአድሚን የተላከ መልዕክት:</b>\n\n${escapeHTML(caption)}`,
+                    parse_mode: 'HTML'
+                });
+            } else {
+                await sendTelegram('sendMessage', {
+                    chat_id: targetUserId,
+                    text: `📩 <b>Message from ICE Academy Admin / ከአድሚን የተላከ መልዕክት:</b>\n\n${escapeHTML(replyContent)}`,
+                    parse_mode: 'HTML'
+                });
+            }
+
+            await sendTelegram('sendMessage', {
+                chat_id: chatId,
+                text: `✅ <b>Reply successfully sent to student!</b>\n🆔 <b>User ID:</b> <code>${targetUserId}</code>\n💬 <b>Your Reply:</b> ${escapeHTML(replyContent)}`,
+                parse_mode: 'HTML'
+            });
+            return;
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 📸 DIRECT PHOTO PAYMENT RECEIPT SUBMISSION
+    // -------------------------------------------------------------
+    if (msg.photo && msg.photo.length > 0) {
+        const highestPhoto = msg.photo[msg.photo.length - 1];
+        const orderId = `ORD-TG-${Date.now().toString().slice(-6)}`;
+        const timestamp = new Date().toISOString();
+        const studentName = `${msg.from.first_name || 'Student'} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username || 'N/A';
+        const userCaption = caption ? caption.trim() : '';
+
+        // Get Telegram direct photo file link and upload to Cloudinary
+        let receiptUrl = '';
+        try {
+            const fileRes = await sendTelegram('getFile', { file_id: highestPhoto.file_id });
+            if (fileRes && fileRes.data && fileRes.data.result && fileRes.data.result.file_path) {
+                const tgDirectUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileRes.data.result.file_path}`;
+                receiptUrl = await uploadToCloudinary(tgDirectUrl);
+                if (!receiptUrl) receiptUrl = tgDirectUrl;
+            }
+        } catch (err) {
+            console.error('Error fetching TG photo file:', err.message);
+        }
+
+        // Save order locally and sync with Google Sheets
+        const orders = loadOrders();
+        const orderData = {
+            order_id: orderId,
+            user_id: userId,
+            name: studentName,
+            phone: users[userId]?.phone || 'Via Telegram Photo',
+            email: users[userId]?.email || 'Via Telegram Photo',
+            telegram_username: username,
+            broker_wallet_id: 'N/A',
+            package_type: 'ICE 35-Day Mastery (Direct Photo)',
+            price: '5,999 ETB',
+            payment_method: 'TELEBIRR / DIRECT PHOTO',
+            receipt_url: receiptUrl,
+            tx_ref: userCaption || 'Telegram Photo Upload',
+            status: 'PENDING',
+            created_at: timestamp
+        };
+        orders[orderId] = orderData;
+        saveOrders(orders);
+        syncToGoogle('new_order', orderData);
+
+        // Notify Admin(s) with photo and actionable inline buttons
+        const adminCaption = `🧾 <b>New Payment Receipt Received (Direct Photo)!</b>\n\n` +
+            `👤 <b>Student:</b> ${escapeHTML(studentName)} (@${username})\n` +
+            `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
+            `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
+            `💰 <b>Amount:</b> 5,999 ETB (or $45 USDT)\n` +
+            `📝 <b>Note / TxRef:</b> ${escapeHTML(userCaption) || '<i>(No caption provided)</i>'}\n` +
+            `⏰ <b>Date:</b> ${new Date().toLocaleString()}\n\n` +
+            `────────────────────\n` +
+            `👉 <i>Check the screenshot above, then click Approve to generate and send the License Key automatically:</i>`;
+
+        const adminKeyboard = {
+            inline_keyboard: [
+                [
+                    { text: '✅ Approve & Send License Key', callback_data: `approve_${orderId}` },
+                    { text: '❌ Reject', callback_data: `reject_${orderId}` }
+                ],
+                [
+                    { text: `💬 Reply to ${msg.from.first_name || 'Student'}`, callback_data: `replyprompt_${userId}` }
+                ]
+            ]
+        };
+
+        for (const adminId of ADMIN_IDS) {
+            const photoRes = await sendTelegram('sendPhoto', {
+                chat_id: adminId,
+                photo: highestPhoto.file_id,
+                caption: adminCaption,
+                parse_mode: 'HTML',
+                reply_markup: adminKeyboard
+            });
+            if (photoRes && photoRes.data && photoRes.data.result) {
+                adminMessageMap[photoRes.data.result.message_id] = userId;
+            }
+        }
+
+        // Confirmation to Student
+        const studentConfirmation = `✅ <b>Payment Receipt Received! / የክፍያ ደረሰኝዎ ደርሶናል!</b>\n\n` +
+            `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
+            `👤 <b>Name:</b> ${escapeHTML(studentName)}\n` +
+            `📝 <b>Note:</b> ${escapeHTML(userCaption) || 'Receipt Screenshot'}\n\n` +
+            `⏳ <b>EN:</b> ICE Core Admins are verifying your receipt screenshot. Your <b>35-Day License Key</b> and website login instructions will be sent here on Telegram shortly.\n\n` +
+            `⏳ <b>AM:</b> አድሚኖች የላኩትን ደረሰኝ እያረጋገጡ ነው። የ <b>35 ቀኑ የፈቃድ ቁልፍ (License Key)</b> በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይደርስዎታል።\n\n` +
+            `Thank you for choosing ICE Trading Academy! 🚀`;
+
+        await sendTelegram('sendMessage', {
+            chat_id: chatId,
+            text: studentConfirmation,
+            parse_mode: 'HTML',
+            reply_markup: MAIN_KEYBOARD_EN
+        });
+        return;
     }
 
     // -------------------------------------------------------------
@@ -776,19 +946,29 @@ async function handleMessage(msg) {
             const fullName = text.trim();
 
             for (const adminId of ADMIN_IDS) {
-                await sendTelegram('sendMessage', {
+                const payoutAdminMsg = `💰 <b>New Telebirr Commission Payout Request!</b>\n\n` +
+                    `👤 <b>User:</b> ${escapeHTML(msg.from.first_name)} (@${msg.from.username || 'N/A'})\n` +
+                    `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
+                    `💵 <b>Amount:</b> <b>${currentPoints} ETB</b>\n` +
+                    `📱 <b>Telebirr Phone:</b> <code>${telebirrPhone}</code>\n` +
+                    `👤 <b>Account Name:</b> ${escapeHTML(fullName)}\n\n` +
+                    `────────────────────\n` +
+                    `Send confirmation to user after transfer:\n` +
+                    `<code>/reply ${userId} Hello ${msg.from.first_name}, your commission of ${currentPoints} ETB has been sent via Telebirr (${telebirrPhone}). Thank you!</code>`;
+
+                const payoutSent = await sendTelegram('sendMessage', {
                     chat_id: adminId,
-                    text: `💰 <b>New Telebirr Commission Payout Request!</b>\n\n` +
-                        `👤 <b>User:</b> ${msg.from.first_name} (@${msg.from.username || 'N/A'})\n` +
-                        `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
-                        `💵 <b>Amount:</b> <b>${currentPoints} ETB</b>\n` +
-                        `📱 <b>Telebirr Phone:</b> <code>${telebirrPhone}</code>\n` +
-                        `👤 <b>Account Name:</b> ${fullName}\n\n` +
-                        `────────────────────\n` +
-                        `Send confirmation to user after transfer:\n` +
-                        `<code>/reply ${userId} Hello ${msg.from.first_name}, your commission of ${currentPoints} ETB has been sent via Telebirr (${telebirrPhone}). Thank you!</code>`,
-                    parse_mode: 'HTML'
+                    text: payoutAdminMsg,
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: `💬 Reply to ${msg.from.first_name}`, callback_data: `replyprompt_${userId}` }]
+                        ]
+                    }
                 });
+                if (payoutSent && payoutSent.data && payoutSent.data.result) {
+                    adminMessageMap[payoutSent.data.result.message_id] = userId;
+                }
             }
 
             syncToGoogle('payout_request', {
@@ -832,7 +1012,7 @@ async function handleMessage(msg) {
             `• Day 22 Research Paper Assignment\n\n` +
             `💵 <b>Price / ዋጋ፦</b> <b>5,999 ETB</b> (or <b>$45 USDT</b>)\n` +
             `🎁 <b>Partner Discount፦</b> <i>Get 30% OFF (<b>4,199 ETB</b>) if you trade with our partner broker link!</i>\n\n` +
-            `👇 <b>Tap below to open the registration form and verify your payment:</b>`;
+            `👇 <b>Tap below to open the registration form or simply send your payment receipt photo directly here:</b>`;
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
@@ -895,7 +1075,7 @@ async function handleMessage(msg) {
         } else {
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `⚠️ <b>No active License Key found.</b>\n\nTo enroll and get your key, tap <b>"💎 Enroll / Verify Payment"</b> below.`,
+                text: `⚠️ <b>No active License Key found.</b>\n\nTo enroll and get your key, tap <b>"💎 Enroll / Verify Payment"</b> below or send your payment receipt photo directly here.`,
                 parse_mode: 'HTML',
                 reply_markup: MAIN_KEYBOARD_EN
             });
@@ -983,7 +1163,9 @@ async function handleMessage(msg) {
     if (text === '📞 Support' || text === '📞 ድጋፍ ሰጪ (Support)') {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `📞 <b>ICE Academy Support Team:</b>\n\nDirect contact on Telegram:\n👉 @ic_ethiopia`,
+            text: `📞 <b>ICE Academy Support Team:</b>\n\n` +
+                `💬 <b>Direct Telegram Support:</b> You can write your question directly here in this bot chat! Our admins will reply promptly.\n` +
+                `👉 Or message directly: @ic_ethiopia`,
             parse_mode: 'HTML',
             reply_markup: MAIN_KEYBOARD_EN
         });
@@ -1023,7 +1205,7 @@ async function handleMessage(msg) {
             const helpMsg = `👑 <b>ICE Bot Admin Command Center / የአድሚን ትዕዛዞች</b>\n\n` +
                 `✅ <b>/approve [order_id / user_id / email]</b>\n` +
                 `└ <i>Approve order, sync license key with website DB, award inviter +150 ETB, and send credentials to student.</i>\n` +
-                `💡 <i>Tip: Typing <code>/approve</code> or <code>/approved</code> alone automatically approves the latest pending order!</i>\n\n` +
+                `💡 <i>Tip: Typing <code>/approve</code> alone automatically approves the latest pending order!</i>\n\n` +
                 `❌ <b>/reject [order_id / user_id]</b>\n` +
                 `└ <i>Reject payment verification and notify student.</i>\n\n` +
                 `📋 <b>/pending</b> or <b>/orders</b>\n` +
@@ -1032,12 +1214,13 @@ async function handleMessage(msg) {
                 `└ <i>View detailed user breakdown (Leads vs Enrolled Students).</i>\n\n` +
                 `🔑 <b>/license &lt;email&gt;</b>\n` +
                 `└ <i>Generate a 35-day license key synchronized with website database.</i>\n\n` +
-                `💬 <b>/reply &lt;user_id&gt; &lt;message&gt;</b>\n` +
-                `└ <i>Send a direct message to any student on Telegram.</i>\n\n` +
+                `💬 <b>Replying to Users (2 Methods):</b>\n` +
+                `• <b>Method 1 (Instant):</b> Swipe & Reply directly to any user message/receipt in Telegram!\n` +
+                `• <b>Method 2:</b> <code>/reply &lt;user_id&gt; &lt;message&gt;</code>\n\n` +
                 `📢 <b>Targeted Broadcasts / መልዕክት ማሰራጫ፦</b>\n` +
                 `• <code>/broadcast &lt;message&gt;</code> — Send to ALL users\n` +
-                `• <code>/broadcast leads &lt;message&gt;</code> — Send ONLY to users who clicked /start but haven't enrolled yet (Follow-up / Offers)\n` +
-                `• <code>/broadcast students &lt;message&gt;</code> — Send ONLY to enrolled/paid students (Course updates)`;
+                `• <code>/broadcast leads &lt;message&gt;</code> — Send ONLY to users who clicked /start but haven't enrolled yet\n` +
+                `• <code>/broadcast students &lt;message&gt;</code> — Send ONLY to enrolled/paid students`;
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
@@ -1097,14 +1280,14 @@ async function handleMessage(msg) {
 
         // 7. /reply
         if (text.startsWith('/reply')) {
-            const parts = text.split(' ');
+            const parts = text.split(/\s+/);
             const targetId = parts[1];
             const replyMsg = parts.slice(2).join(' ');
 
             if (!targetId || !replyMsg) {
                 await sendTelegram('sendMessage', {
                     chat_id: chatId,
-                    text: `⚠️ <b>Usage:</b> <code>/reply &lt;user_id&gt; &lt;message&gt;</code>`,
+                    text: `⚠️ <b>Usage:</b> <code>/reply &lt;user_id&gt; &lt;message&gt;</code>\nExample: <code>/reply 12345678 ሰላም፣ ጥያቄዎ ደርሶናል</code>`,
                     parse_mode: 'HTML'
                 });
                 return;
@@ -1112,13 +1295,13 @@ async function handleMessage(msg) {
 
             await sendTelegram('sendMessage', {
                 chat_id: targetId,
-                text: `📩 <b>Message from ICE Academy Admin:</b>\n\n${replyMsg}`,
+                text: `📩 <b>Message from ICE Academy Admin / ከአድሚን የተላከ መልዕክት:</b>\n\n${escapeHTML(replyMsg)}`,
                 parse_mode: 'HTML'
             });
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `✅ Message sent to user <code>${targetId}</code>!`,
+                text: `✅ <b>Message successfully sent to user</b> (ID: <code>${targetId}</code>)!`,
                 parse_mode: 'HTML'
             });
             return;
@@ -1190,6 +1373,53 @@ async function handleMessage(msg) {
             });
             return;
         }
+    }
+
+    // -------------------------------------------------------------
+    // 💬 DIRECT USER INQUIRY & SUPPORT MESSAGE FORWARDING (NON-ADMINS)
+    // -------------------------------------------------------------
+    if (!isAdmin && text.trim()) {
+        const userFullName = `${msg.from.first_name || 'Trader'} ${msg.from.last_name || ''}`.trim();
+        const username = msg.from.username || 'N/A';
+
+        const adminSupportMsg = `📩 <b>New Support Message from User / አዲስ የተጠቃሚ መልዕክት</b>\n\n` +
+            `👤 <b>From:</b> ${escapeHTML(userFullName)} (@${username})\n` +
+            `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
+            `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+            `💬 <b>Message:</b>\n<i>"${escapeHTML(text)}"</i>\n\n` +
+            `────────────────────\n` +
+            `💡 <i>To reply: <b>Swipe / Reply</b> to this message directly in Telegram, or click below:</i>`;
+
+        const replyKeyboard = {
+            inline_keyboard: [
+                [
+                    { text: `💬 Reply to ${msg.from.first_name || 'User'}`, callback_data: `replyprompt_${userId}` }
+                ]
+            ]
+        };
+
+        for (const adminId of ADMIN_IDS) {
+            const sentRes = await sendTelegram('sendMessage', {
+                chat_id: adminId,
+                text: adminSupportMsg,
+                parse_mode: 'HTML',
+                reply_markup: replyKeyboard
+            });
+            if (sentRes && sentRes.data && sentRes.data.result) {
+                adminMessageMap[sentRes.data.result.message_id] = userId;
+            }
+        }
+
+        // Acknowledge to student
+        await sendTelegram('sendMessage', {
+            chat_id: chatId,
+            text: `✅ <b>Your message has been sent to ICE Core Admins! / መልዕክትዎ ለአድሚኖች ደርሷል!</b>\n\n` +
+                `We have received your message and will reply to you right here on Telegram shortly.\n` +
+                `መልዕክትዎ ደርሶናል፤ አድሚኖች ተመልክተው በአጭር ጊዜ ውስጥ በዚሁ ቴሌግራም ይመልሱልዎታል።`,
+            parse_mode: 'HTML',
+            reply_markup: MAIN_KEYBOARD_EN
+        });
+        return;
     }
 }
 
