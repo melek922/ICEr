@@ -6,7 +6,7 @@
 
 ## 🛠️ አጠቃቀም እና አሰራር (Setup Guide)
 
-1. አዲስ **Google Sheet** ይክፈቱ (ስሙን `ICE Core Database` ይበሉት)።
+1. አዲስ **Google Sheet** ይክፈቱ (ስሙን `ICE Database` ይበሉት)።
 2. ከላይ ከሜኑ ውስጥ **Extensions** -> **Apps Script** የሚለውን ይጫኑ።
 3. ያለውን ኮድ አጥፍተው ከስር ያለውን ሙሉ ኮድ ይለጥፉት (Paste ያድርጉ)።
 4. **Deploy** -> **New deployment** ይጫኑ፦
@@ -20,7 +20,7 @@
 ## 📜 የ Google Apps Script ኮድ (Code.gs)
 
 ```javascript
-// Google Sheets Database for ICE Core Trading Psychology
+// Google Sheets Database for ICE Trading Psychology
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
