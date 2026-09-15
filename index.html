@@ -180,7 +180,7 @@
                 </label>
                 
                 <div class="relative border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 text-center cursor-pointer bg-[#09101d] transition group">
-                    <input type="file" id="receiptFile" accept="image/*" required class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" onchange="handleFile(event)">
+                    <input type="file" id="receiptFile" accept="image/png, image/jpeg, image/jpg, image/webp" required class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" onchange="handleFile(event)">
                     
                     <div id="uploadPrompt" class="flex flex-col items-center justify-center gap-2 py-2">
                         <div class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
@@ -455,19 +455,68 @@
 
         function handleFile(event) {
             const file = event.target.files[0];
-            if (file) {
-                document.getElementById('previewName').innerText = file.name;
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    receiptBase64 = e.target.result;
-                    document.getElementById('previewImg').src = receiptBase64;
-                    document.getElementById('uploadPrompt').classList.add('hidden');
-                    document.getElementById('uploadPreview').classList.remove('hidden');
-                    lucide.createIcons();
-                    checkFormValidity();
-                };
-                reader.readAsDataURL(file);
+            if (!file) return;
+
+            // 1. Image Type Validation (ምስል ብቻ እንዲሆን)
+            if (!file.type.startsWith('image/')) {
+                alert(currentLang === 'en' ? '⚠️ Please select a valid image file (PNG, JPG, JPEG, WEBP).' : '⚠️ እባክዎ ትክክለኛ የምስል ፋይል ብቻ (PNG, JPG, JPEG) ይምረጡ።');
+                event.target.value = '';
+                return;
             }
+
+            // 2. Maximum Size Limit (እስከ 15MB)
+            if (file.size > 15 * 1024 * 1024) {
+                alert(currentLang === 'en' ? '⚠️ Image is too large (Max 15MB).' : '⚠️ የምስሉ መጠን ከ 15MB በላይ ነው። እባክዎ ትንሽ ምስል ይምረጡ።');
+                event.target.value = '';
+                return;
+            }
+
+            document.getElementById('previewName').innerText = file.name;
+            
+            // 3. Client-Side Image Compression & Resizing (ትላልቅ ምስል እንዳይሆን አውቶማቲክ ማስተካከያ)
+            compressImage(file, (compressedBase64) => {
+                receiptBase64 = compressedBase64;
+                document.getElementById('previewImg').src = receiptBase64;
+                document.getElementById('uploadPrompt').classList.add('hidden');
+                document.getElementById('uploadPreview').classList.remove('hidden');
+                lucide.createIcons();
+                checkFormValidity();
+            });
+        }
+
+        // Automatic Image Compression via HTML5 Canvas
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDimension = 1600; // Optimal for sharp text & small filesize
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Export crisp JPEG at quality 0.82 (typically 150KB-300KB)
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    callback(compressedDataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
         // Check if all required fields are filled to show Verify Button
@@ -512,9 +561,9 @@
             try {
                 const uploadData = new FormData();
                 uploadData.append('file', receiptBase64);
-                uploadData.append('upload_preset', 'book_preset');
+                uploadData.append('upload_preset', 'ice_preset');
 
-                const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dlthi9a6h/image/upload', {
+                const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/rbkihpxg/image/upload', {
                     method: 'POST',
                     body: uploadData
                 });
