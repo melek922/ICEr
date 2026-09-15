@@ -25,6 +25,34 @@ const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
 const TELEBIRR_NAME = process.env.TELEBIRR_NAME || 'Nathanael';
 const USDT_ADDRESS = process.env.USDT_TRC20_ADDRESS || 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
+// ☁️ Cloudinary Configuration (Server-Side Protected)
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'rbkihpxg';
+const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || 'ice_preset';
+
+async function uploadToCloudinary(base64Data) {
+    if (!base64Data || !base64Data.startsWith('data:image')) {
+        return base64Data || '';
+    }
+    try {
+        console.log('☁️ Uploading receipt to Cloudinary server-side...');
+        const response = await axios.post(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+                file: base64Data,
+                upload_preset: CLOUDINARY_UPLOAD_PRESET
+            }
+        );
+
+        if (response.data && response.data.secure_url) {
+            console.log('✅ Cloudinary upload success:', response.data.secure_url);
+            return response.data.secure_url;
+        }
+    } catch (err) {
+        console.error('❌ Cloudinary server upload error:', err.response ? err.response.data : err.message);
+    }
+    return '';
+}
+
 // 📁 Local Data Files
 const DB_FILE = path.join(__dirname, 'users.json');
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
@@ -162,6 +190,12 @@ app.post('/api/order', async (req, res) => {
         const orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const timestamp = new Date().toISOString();
 
+        // ☁️ Secure Server-Side Cloudinary Upload
+        let finalReceiptUrl = receipt_url || '';
+        if (finalReceiptUrl && finalReceiptUrl.startsWith('data:image')) {
+            finalReceiptUrl = await uploadToCloudinary(finalReceiptUrl);
+        }
+
         const orderData = {
             order_id: orderId,
             user_id: user_id ? user_id.toString() : 'WEBSITE',
@@ -173,7 +207,7 @@ app.post('/api/order', async (req, res) => {
             package_type: package_type || 'ICE 35-Day Mastery',
             price: price || '5,999 ETB',
             payment_method: payment_method || 'TELEBIRR',
-            receipt_url: receipt_url || '',
+            receipt_url: finalReceiptUrl,
             tx_ref: tx_ref || 'N/A',
             status: 'PENDING',
             created_at: timestamp
