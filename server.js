@@ -1002,17 +1002,19 @@ async function handleMessage(msg) {
     if (text.startsWith('/start')) {
         const welcomeMsg = `👋 <b>Welcome to ICE Trading Psychology Academy!</b>\n` +
             `👋 <b>እንኳን ወደ ICE Trading Psychology Academy በሰላም መጡ!</b>\n\n` +
-            `🧠 <b>ICE CORE — 35-Day Trading Psychology Mastery Program</b>\n` +
-            `የ 35 ቀናት የትሬዲንግ ስነ-ልቦና እና ዲሲፕሊን ማስተሪ ስልጠና\n\n` +
-            `Master your emotions, eliminate trading anxiety, develop strict risk management discipline, and become a consistently profitable trader.\n\n` +
-            `💎 <b>Program Features / ምን ያካትታል?</b>\n` +
-            `• 35 Daily High-Impact Video Lectures (Drip-Feed)\n` +
-            `• DISC Personality Assessment & Tailored Challenges\n` +
-            `• Daily Trading Psychology Journal & Mentor Reviews\n` +
-            `• Day 22 Research Paper Assignment\n\n` +
-            `💵 <b>Price / ዋጋ፦</b> <b>5,999 ETB</b> (or <b>$45 USDT</b>)\n` +
-            `🎁 <b>Partner Discount፦</b> <i>Get 30% OFF (<b>4,199 ETB</b>) if you trade with our partner broker link!</i>\n\n` +
-            `👇 <b>Tap below to open the registration form or simply send your payment receipt photo directly here:</b>`;
+            `🧠 <b>ICE CORE — Master Your Trading Psychology & Discipline</b>\n` +
+            `ስሜትዎን ይቆጣጠሩ፣ የትሬዲንግ ፍርሃትን ያስወግዱ፣ ጠንካራ የሪስክ ማኔጅመንት ዲሲፕሊን ይገንቡ።\n\n` +
+            `🌟 <b>Choose Your Path / የስልጠና አማራጮች፦</b>\n` +
+            `1️⃣ <b>Telegram Group:</b> <code>1,000 ETB / $5 / mo</code>\n` +
+            `   └ <i>Daily video lectures + 1 Live session/week</i>\n\n` +
+            `2️⃣ <b>30-Day Mastery Program (Recommended):</b> <code>6,000 ETB / $45</code>\n` +
+            `   └ <i>Full Curriculum + Daily Challenges + Progress Tracking</i>\n\n` +
+            `3️⃣ <b>1-on-1 Mentorship:</b> <code>13,500 ETB / $100 / mo</code>\n` +
+            `   └ <i>2x 45-min sessions/week + Daily Videos + Priority Q&A</i>\n\n` +
+            `4️⃣ <b>Negadras Tier (50% Off):</b> <code>3,000 ETB</code>\n` +
+            `   └ <i>Special 50% discount for Negadras Level 2 students</i>\n\n` +
+            `🎁 <b>Broker Partner Discount:</b> <i>Get 30% OFF if you register with our partner broker link!</i>\n\n` +
+            `👇 <b>Tap "💎 Enroll / Verify Payment" below to select your package, or send your payment screenshot directly here:</b>`;
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
