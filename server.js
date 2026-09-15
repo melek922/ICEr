@@ -99,6 +99,39 @@ function generateLicenseKey() {
     return `ITP-${block()}-${block()}-${block()}`;
 }
 
+// 🌐 Sync & Get Valid License Key Directly from Website Database (ice-core.vercel.app)
+async function getWebsiteLicenseKey() {
+    try {
+        // 1. Try to fetch an available unassigned key directly from website pool
+        const listRes = await axios.get(`${WEBSITE_URL}/api/license`, { timeout: 4000 });
+        if (listRes.data && listRes.data.keys && Array.isArray(listRes.data.keys)) {
+            const available = listRes.data.keys.find(k => k.status === 'available');
+            if (available && available.key) {
+                console.log('✅ Acquired available key from website database pool:', available.key);
+                return available.key;
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Website license list API:', e.message);
+    }
+
+    try {
+        // 2. Try to generate a new key on website database
+        const genRes = await axios.post(`${WEBSITE_URL}/api/license`, { count: 1 }, { timeout: 4000 });
+        if (genRes.data && genRes.data.keys && genRes.data.keys.length > 0) {
+            const k = genRes.data.keys[0];
+            const generated = typeof k === 'string' ? k : (k.key || generateLicenseKey());
+            console.log('✅ Generated new key on website database:', generated);
+            return generated;
+        }
+    } catch (e) {
+        console.warn('⚠️ Website license generate API:', e.message);
+    }
+
+    // 3. Fallback format
+    return generateLicenseKey();
+}
+
 // 🤖 Telegram API Request Helper
 async function sendTelegram(method, data) {
     if (!BOT_TOKEN) {
@@ -456,8 +489,8 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
         return;
     }
 
-    // Generate License Key
-    const licenseKey = generateLicenseKey();
+    // Generate/Fetch Valid License Key Synced with Website Database
+    const licenseKey = await getWebsiteLicenseKey();
     order.status = 'APPROVED';
     order.license_key = licenseKey;
     order.approved_at = new Date().toISOString();
@@ -968,20 +1001,22 @@ async function handleMessage(msg) {
         if (lowerText === '/admin' || lowerText === '/adminhelp' || lowerText === '/help') {
             const helpMsg = `👑 <b>ICE Bot Admin Command Center / የአድሚን ትዕዛዞች</b>\n\n` +
                 `✅ <b>/approve [order_id / user_id / email]</b>\n` +
-                `└ <i>Approve order, generate license key, award inviter +150 ETB commission, and send credentials to student.</i>\n` +
+                `└ <i>Approve order, sync license key with website DB, award inviter +150 ETB, and send credentials to student.</i>\n` +
                 `💡 <i>Tip: Typing <code>/approve</code> or <code>/approved</code> alone automatically approves the latest pending order!</i>\n\n` +
                 `❌ <b>/reject [order_id / user_id]</b>\n` +
                 `└ <i>Reject payment verification and notify student.</i>\n\n` +
                 `📋 <b>/pending</b> or <b>/orders</b>\n` +
                 `└ <i>List all orders currently waiting for verification.</i>\n\n` +
                 `📊 <b>/stats</b>\n` +
-                `└ <i>View total user count, total orders, and approval metrics.</i>\n\n` +
+                `└ <i>View detailed user breakdown (Leads vs Enrolled Students).</i>\n\n` +
                 `🔑 <b>/license &lt;email&gt;</b>\n` +
-                `└ <i>Manually generate a standalone 35-day license key.</i>\n\n` +
+                `└ <i>Generate a 35-day license key synchronized with website database.</i>\n\n` +
                 `💬 <b>/reply &lt;user_id&gt; &lt;message&gt;</b>\n` +
                 `└ <i>Send a direct message to any student on Telegram.</i>\n\n` +
-                `📢 <b>/broadcast &lt;message&gt;</b>\n` +
-                `└ <i>Broadcast an announcement to all bot users.</i>`;
+                `📢 <b>Targeted Broadcasts / መልዕክት ማሰራጫ፦</b>\n` +
+                `• <code>/broadcast &lt;message&gt;</code> — Send to ALL users\n` +
+                `• <code>/broadcast leads &lt;message&gt;</code> — Send ONLY to users who clicked /start but haven't enrolled yet (Follow-up / Offers)\n` +
+                `• <code>/broadcast students &lt;message&gt;</code> — Send ONLY to enrolled/paid students (Course updates)`;
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
@@ -993,28 +1028,34 @@ async function handleMessage(msg) {
 
         // 5. /stats
         if (text === '/stats') {
-            const allUsers = Object.keys(users).length;
+            const allUsers = Object.keys(users);
+            const enrolledUsers = allUsers.filter(uid => users[uid]?.has_purchased === true);
+            const leadUsers = allUsers.filter(uid => !users[uid]?.has_purchased);
+
             const allOrders = Object.values(loadOrders());
             const approvedOrders = allOrders.filter(o => o.status === 'APPROVED').length;
             const pendingOrders = allOrders.filter(o => o.status === 'PENDING').length;
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `📊 <b>ICE Bot Statistics</b>\n\n` +
-                    `👥 <b>Total Registered Users:</b> ${allUsers}\n` +
+                text: `📊 <b>ICE Bot Statistics & Segmentation</b>\n\n` +
+                    `👥 <b>Total Bot Users:</b> ${allUsers.length}\n` +
+                    `🎯 <b>Leads (/start only, not yet enrolled):</b> ${leadUsers.length}\n` +
+                    `🎓 <b>Enrolled Students (Paid & Licensed):</b> ${enrolledUsers.length}\n\n` +
                     `🛍️ <b>Total Orders:</b> ${allOrders.length}\n` +
                     `✅ <b>Approved Orders:</b> ${approvedOrders}\n` +
-                    `⏳ <b>Pending Verification:</b> ${pendingOrders}\n`,
+                    `⏳ <b>Pending Verification:</b> ${pendingOrders}\n\n` +
+                    `<i>Use <code>/broadcast leads &lt;msg&gt;</code> to send special promotional offers to all ${leadUsers.length} leads!</i>`,
                 parse_mode: 'HTML'
             });
             return;
         }
 
-        // 6. /license
+        // 6. /license <email> (Synced with Website DB)
         if (text.startsWith('/license')) {
             const parts = text.split(' ');
             const targetEmail = parts[1] ? parts[1].trim() : 'student@ice.com';
-            const key = generateLicenseKey();
+            const key = await getWebsiteLicenseKey();
 
             const licenses = loadLicenses();
             licenses[key] = {
@@ -1027,7 +1068,7 @@ async function handleMessage(msg) {
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `✅ <b>License Key Generated!</b>\n\n🔑 <b>Key:</b> <code>${key}</code>\n📧 <b>Assigned Email:</b> ${targetEmail}`,
+                text: `✅ <b>Website-Synced License Key Generated!</b>\n\n🔑 <b>Key:</b> <code>${key}</code>\n📧 <b>Assigned Email:</b> ${targetEmail}\n🌐 <i>Active and ready on https://ice-core.vercel.app</i>`,
                 parse_mode: 'HTML'
             });
             return;
@@ -1062,21 +1103,57 @@ async function handleMessage(msg) {
             return;
         }
 
-        // 8. /broadcast
+        // 8. /broadcast (Targeted Segmentation)
         if (text.startsWith('/broadcast')) {
-            const broadcastMsg = text.replace('/broadcast', '').trim();
-            if (!broadcastMsg) {
+            const raw = text.replace('/broadcast', '').trim();
+            if (!raw) {
                 await sendTelegram('sendMessage', {
                     chat_id: chatId,
-                    text: `⚠️ <b>Usage:</b> <code>/broadcast &lt;message text&gt;</code>`,
+                    text: `⚠️ <b>Broadcast Usage:</b>\n\n` +
+                        `• <code>/broadcast &lt;message&gt;</code> — All users\n` +
+                        `• <code>/broadcast leads &lt;message&gt;</code> — Only /start users who haven't paid yet\n` +
+                        `• <code>/broadcast students &lt;message&gt;</code> — Only enrolled students`,
                     parse_mode: 'HTML'
                 });
                 return;
             }
 
+            let targetAudience = 'all';
+            let broadcastMsg = raw;
+
+            if (raw.toLowerCase().startsWith('leads ')) {
+                targetAudience = 'leads';
+                broadcastMsg = raw.substring(6).trim();
+            } else if (raw.toLowerCase().startsWith('students ')) {
+                targetAudience = 'students';
+                broadcastMsg = raw.substring(9).trim();
+            } else if (raw.toLowerCase().startsWith('all ')) {
+                targetAudience = 'all';
+                broadcastMsg = raw.substring(4).trim();
+            }
+
             const allUserIds = Object.keys(users);
+            let targetUserIds = [];
+
+            if (targetAudience === 'leads') {
+                targetUserIds = allUserIds.filter(uid => !users[uid]?.has_purchased);
+            } else if (targetAudience === 'students') {
+                targetUserIds = allUserIds.filter(uid => users[uid]?.has_purchased === true);
+            } else {
+                targetUserIds = allUserIds;
+            }
+
+            if (targetUserIds.length === 0) {
+                await sendTelegram('sendMessage', {
+                    chat_id: chatId,
+                    text: `⚠️ No users found in the "<b>${targetAudience}</b>" segment.`,
+                    parse_mode: 'HTML'
+                });
+                return;
+            }
+
             let count = 0;
-            for (const uid of allUserIds) {
+            for (const uid of targetUserIds) {
                 await sendTelegram('sendMessage', {
                     chat_id: uid,
                     text: `📢 <b>ICE Academy Announcement</b>\n\n${broadcastMsg}`,
@@ -1087,7 +1164,7 @@ async function handleMessage(msg) {
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `✅ Broadcast sent to <b>${count}</b> users!`,
+                text: `✅ Broadcast successfully sent to <b>${count}</b> users in segment (<b>${targetAudience}</b>)!`,
                 parse_mode: 'HTML'
             });
             return;
