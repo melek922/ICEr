@@ -20,7 +20,7 @@ const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => i
 const WEB_URL = process.env.WEB_URL || `http://localhost:${PORT}`;
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://ice-core.vercel.app';
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
-const BOT_USERNAME = process.env.BOT_USERNAME || 'IceTradingBot';
+const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
 const TELEBIRR_NAME = process.env.TELEBIRR_NAME || 'Nathanael';
 const USDT_ADDRESS = process.env.USDT_TRC20_ADDRESS || 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
