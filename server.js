@@ -1035,13 +1035,15 @@ async function handleMessage(msg) {
             `ይህንን ሊንክ ለትሬደር ጓደኞችዎ ያጋሩ። በእርስዎ ሊንክ ሲመዘገቡ <b>150 ብር ኮሚሽን</b> ያገኛሉ።\n\n` +
             `📅 <b>Payout Schedule:</b> Withdrawals are processed <b>every SUNDAY (እሁድ ቀን ብቻ)</b> via Telebirr.`;
 
+        const sharePromoText = `🚀 ICE Trading Psychology Academy\n\n🧠 ስሜትዎን ይቆጣጠሩ፣ የትሬዲንግ ዲሲፕሊንዎን ያሳድጉ!\n💎 35-Day Practical Mastery Program\n\n👇 አሁኑኑ ተቀላቅለው ይመዝገቡ፦\n${refLink}`;
+
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: refMsg,
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "📤 Share with Friends / ለጓደኞችህ አጋራ", url: `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent("Join the 35-Day ICE Trading Psychology Program. Master your discipline and mindset!")}` }]
+                    [{ text: "📤 Share with Friends / ለጓደኞችህ አጋራ", url: `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent("🚀 ICE Trading Psychology Academy\n\n🧠 ስሜትዎን ይቆጣጠሩ፣ የትሬዲንግ ዲሲፕሊንዎን ያሳድጉ!\n💎 35-Day Practical Mastery Program\n\n👇 አሁኑኑ ተቀላቅለው ይመዝገቡ፦")}` }]
                 ]
             }
         });
