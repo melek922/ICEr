@@ -17,7 +17,7 @@ app.use(express.static(__dirname));
 // ⚠️ Environment Configurations
 const BOT_TOKEN = process.env.BOT_TOKEN || '8897397930:AAG253KLBS1y-KXEqw5Xf6sSpv0Ylx0LxHY';
 const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => id.trim());
-const WEB_URL = process.env.WEB_URL || `http://localhost:${PORT}`;
+const WEB_URL = process.env.WEB_URL || 'https://icer.onrender.com';
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://ice-core.vercel.app';
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
@@ -1463,7 +1463,7 @@ async function startTelegramPolling() {
 const PING_INTERVAL_MS = 8 * 60 * 1000; // Ping every 8 minutes (Render sleeps after 15 mins)
 
 function startKeepAlivePing() {
-    const pingUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL;
+    const pingUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL || 'https://icer.onrender.com';
     if (!pingUrl || !pingUrl.startsWith('https://')) return;
 
     console.log(`⏰ Anti-Sleep Keep-Alive activated for: ${pingUrl}`);
