@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ICE CORE - Payment & Verification</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0c1322',
+                            card: '#111b2e',
+                            border: '#1e2d48',
+                            cyan: '#00b4d8',
+                            cyanLight: '#00e5ff',
+                            emerald: '#059669',
+                            emeraldHover: '#047857',
+                            greenText: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Ethiopic", sans-serif;
+            background-color: #0c1322;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .custom-checkbox {
+            accent-color: #00e5ff;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body class="text-slate-200 min-h-screen flex flex-col justify-between p-4 sm:p-6 max-w-md mx-auto">
+
+    <!-- Top Navigation Bar -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-md shadow-cyan-500/10">
+                <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-white tracking-wide">ICE CORE</h1>
+                <p class="text-[10px] text-cyan-400 font-medium tracking-tight">35-Day Mastery Program</p>
+            </div>
+        </div>
+
+        <!-- Language Toggle -->
+        <button type="button" onclick="toggleLanguage()" class="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span id="langLabel">English</span>
+        </button>
+    </div>
+
+    <!-- Main Card Content -->
+    <main class="space-y-4">
+
+        <!-- 1. Broker Partner Discount Box -->
+        <div class="rounded-xl border border-cyan-500/30 bg-[#0e1a2f] p-3.5 transition-all">
+            <label class="flex items-start gap-3 cursor-pointer select-none">
+                <input type="checkbox" id="brokerDiscount" onchange="toggleBrokerDiscount()" class="custom-checkbox w-4 h-4 mt-0.5 rounded cursor-pointer">
+                <div>
+                    <p class="text-sm font-bold text-cyan-400 leading-tight" id="txtBrokerTitle">
+                        I registered using an ICE CORE Partner Broker Link (-30%)
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1 leading-snug" id="txtBrokerSub">
+                        Get 30% off your subscription if you use our IB link on Exness, HFM, Vantage, GatesFX, or Pepperstone.
+                    </p>
+                </div>
+            </label>
+
+            <!-- Broker Wallet ID Input (Appears when checked) -->
+            <div id="brokerWalletContainer" class="hidden mt-3 pt-3 border-t border-cyan-500/20 space-y-1.5 fade-in">
+                <label class="block text-xs font-semibold text-cyan-300 flex items-center gap-1" id="lblBrokerWallet">
+                    <i data-lucide="wallet" class="w-3.5 h-3.5 text-cyan-400"></i> Broker Account / Wallet ID *
+                </label>
+                <input type="text" id="broker_wallet_id" oninput="checkFormValidity()" placeholder="e.g. 18273645 (Exness/HFM Wallet ID)" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-cyan-500/40 focus:border-cyan-400 focus:outline-none text-xs text-white placeholder:text-slate-600 font-mono">
+                <p class="text-[10px] text-slate-400" id="txtBrokerWalletHelp">
+                    Please enter your broker wallet ID so we can verify your 30% discount.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Payment Method Switcher (Telebirr & Crypto USDT Only) -->
+        <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" onclick="setPaymentMethod('telebirr')" id="btnTelebirr" class="py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-white bg-cyan-600 shadow-md shadow-cyan-600/20">
+                Telebirr
+            </button>
+            <button type="button" onclick="setPaymentMethod('crypto')" id="btnCrypto" class="py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-slate-400 bg-white border border-slate-300 hover:text-slate-600">
+                Crypto (USDT)
+            </button>
+        </div>
+
+        <!-- 3. Dynamic Price Instructions -->
+        <div class="text-center pt-1 pb-0.5">
+            <p class="text-xs text-slate-400" id="txtSendInstruction">
+                Send exactly <span class="font-bold text-white text-sm" id="displayAmount">5,999 ETB</span> via Telebirr to:
+            </p>
+        </div>
+
+        <!-- 4. Prominent Address / Phone Container (Click to Copy) -->
+        <div onclick="copyPaymentTarget()" class="rounded-xl bg-[#09101d] border border-slate-800 p-4 text-center cursor-pointer hover:border-cyan-500/50 transition group active:scale-[0.99] relative">
+            <p class="text-xl font-mono font-black text-emerald-400 tracking-wider group-hover:text-cyan-300 transition" id="paymentTarget">
+                0941550511
+            </p>
+            <p class="text-[11px] text-slate-400 mt-1 flex items-center justify-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span id="txtTapToCopy">Tap to copy number</span> • <span class="text-cyan-300 font-bold" id="accountName">Nathanael</span>
+            </p>
+        </div>
+
+        <!-- 5. User Registration & Payment Verification Form -->
+        <form id="verifyForm" class="space-y-3.5 pt-1">
+
+            <!-- Full Name -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1" id="lblName">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-cyan-400"></i> Full Name *
+                </label>
+                <input type="text" id="name" oninput="checkFormValidity()" required placeholder="Enter your full name" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder:text-slate-600">
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1" id="lblPhone">
+                    <i data-lucide="phone" class="w-3.5 h-3.5 text-cyan-400"></i> Phone Number *
+                </label>
+                <input type="tel" id="phone" oninput="checkFormValidity()" required placeholder="09xxxxxxxx" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder:text-slate-600">
+            </div>
+
+            <!-- Email (for Website Login) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1" id="lblEmail">
+                    <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-400"></i> Email Address (for Website Login) *
+                </label>
+                <input type="email" id="email" oninput="checkFormValidity()" required placeholder="you@example.com" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder:text-slate-600">
+            </div>
+
+            <!-- Transaction Reference / TxRef -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1" id="lblTxRef">
+                    <i data-lucide="receipt" class="w-3.5 h-3.5 text-cyan-400"></i> Telebirr Transaction ID (TxRef) *
+                </label>
+                <input type="text" id="tx_ref" oninput="checkFormValidity()" required placeholder="E.G.  7K3DF9L" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder:text-slate-600 uppercase font-mono">
+            </div>
+
+            <!-- Prominent & Wide Screenshot Upload Container -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1" id="lblReceipt">
+                    <i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i> Payment Screenshot (Receipt) *
+                </label>
+                
+                <div class="relative border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 text-center cursor-pointer bg-[#09101d] transition group">
+                    <input type="file" id="receiptFile" accept="image/*" required class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" onchange="handleFile(event)">
+                    
+                    <div id="uploadPrompt" class="flex flex-col items-center justify-center gap-2 py-2">
+                        <div class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
+                            <i data-lucide="image-plus" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-200" id="txtUploadPromptTitle">Tap to Upload Receipt Screenshot</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5" id="txtUploadPromptSub">PNG, JPG, JPEG (Max 10MB)</p>
+                        </div>
+                    </div>
+
+                    <div id="uploadPreview" class="hidden flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-cyan-500/40">
+                        <div class="flex items-center gap-3">
+                            <img id="previewImg" src="" class="w-12 h-12 object-cover rounded-lg border border-cyan-500 shadow">
+                            <div class="text-left">
+                                <p class="text-xs font-bold text-white truncate max-w-[180px]" id="previewName">receipt.jpg</p>
+                                <p class="text-[10px] text-emerald-400 flex items-center gap-1">
+                                    <i data-lucide="check-circle" class="w-3 h-3"></i> Ready to send
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] text-cyan-400 underline font-semibold pr-2">Change</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incomplete Form Helper Hint (Visible when not all fields are complete) -->
+            <div id="incompleteHint" class="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-center">
+                <p class="text-xs text-slate-400 flex items-center justify-center gap-1.5" id="txtIncompleteNotice">
+                    <i data-lucide="info" class="w-3.5 h-3.5 text-amber-400"></i> Please fill in all required fields and attach your screenshot to proceed.
+                </p>
+            </div>
+
+            <!-- Verify & Submit Button (Appears only when all fields are complete!) -->
+            <div id="submitButtonContainer" class="hidden fade-in">
+                <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 rounded-xl bg-[#006e44] hover:bg-[#005a37] text-white font-bold text-sm tracking-wide shadow-lg shadow-emerald-950/40 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span id="btnVerifyText">Verify Telebirr Payment</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Success Message Modal -->
+        <div id="successCard" class="hidden rounded-xl bg-[#0e1a2f] border border-emerald-500/40 p-6 text-center space-y-3.5 fade-in">
+            <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/40 shadow-lg shadow-emerald-500/20">
+                <i data-lucide="check-check" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-white" id="txtSuccessTitle">Payment Submitted Successfully!</h3>
+            <p class="text-xs text-slate-300 leading-relaxed" id="txtSuccessDesc">
+                Your transaction has been sent to Nathanael. You will receive your <b>35-Day License Key</b> on Telegram shortly.
+            </p>
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono text-cyan-400" id="confirmedOrderId">
+                ORD-XXXXX
+            </div>
+            <button type="button" onclick="closeWebApp()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                Back to Telegram
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer Support Link -->
+    <footer class="text-center pt-5">
+        <a href="https://t.me/ic_ethiopia" target="_blank" class="text-xs text-slate-500 hover:text-cyan-400 transition inline-flex items-center gap-1.5">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Need help? Contact @ic_ethiopia
+        </a>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // State Management
+        let currentLang = 'en'; // 'en' or 'am'
+        let currentMethod = 'telebirr'; // 'telebirr' or 'crypto'
+        let baseTelebirrPrice = 5999;
+        let baseUsdtPrice = 45;
+        let telebirrNumber = '0941550511';
+        let accountHolderName = 'Nathanael';
+        let usdtAddress = 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+        let receiptBase64 = '';
+
+        // Auto-detect Telegram User details via WebApp SDK
+        const tg = window.Telegram?.WebApp;
+        let telegramUserId = 'WEBSITE';
+        let telegramUsername = '';
+
+        if (tg) {
+            tg.expand();
+            if (tg.initDataUnsafe?.user) {
+                const u = tg.initDataUnsafe.user;
+                telegramUserId = u.id ? u.id.toString() : 'WEBSITE';
+                telegramUsername = u.username ? `@${u.username}` : '';
+                
+                // Pre-fill Name if available
+                const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+                if (fullName) {
+                    document.getElementById('name').value = fullName;
+                }
+            }
+        }
+
+        // Fetch dynamic payment config
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(data => {
+                if (data.payment_info) {
+                    if (data.payment_info.telebirr) {
+                        telebirrNumber = data.payment_info.telebirr.number || telebirrNumber;
+                        accountHolderName = data.payment_info.telebirr.name || accountHolderName;
+                    }
+                    if (data.payment_info.usdt_trc20) {
+                        usdtAddress = data.payment_info.usdt_trc20 || usdtAddress;
+                    }
+                    updateDisplay();
+                }
+            })
+            .catch(() => {});
+
+        // Language Dictionary
+        const translations = {
+            en: {
+                langBtn: 'English',
+                brokerTitle: 'I registered using an ICE CORE Partner Broker Link (-30%)',
+                brokerSub: 'Get 30% off your subscription if you use our IB link on Exness, HFM, Vantage, GatesFX, or Pepperstone.',
+                lblBrokerWallet: 'Broker Account / Wallet ID *',
+                brokerWalletHelp: 'Please enter your broker wallet ID so we can verify your 30% discount.',
+                sendViaTB: 'Send exactly {amount} via Telebirr to:',
+                sendViaUSDT: 'Send exactly {amount} via Crypto (USDT TRC20) to:',
+                tapTB: 'Tap to copy number',
+                tapUSDT: 'Tap to copy TRC20 address',
+                lblName: 'Full Name *',
+                lblPhone: 'Phone Number *',
+                lblEmail: 'Email Address (for Website Login) *',
+                lblTxRefTB: 'Telebirr Transaction ID (TxRef) *',
+                lblTxRefUSDT: 'USDT Transaction Hash (TxID) *',
+                lblReceipt: 'Payment Screenshot (Receipt) *',
+                uploadTitle: 'Tap to Upload Receipt Screenshot',
+                uploadSub: 'PNG, JPG, JPEG (Max 10MB)',
+                incompleteNotice: 'Please fill in all required fields and attach your screenshot to proceed.',
+                btnVerifyTB: 'Verify Telebirr Payment',
+                btnVerifyUSDT: 'Verify USDT Payment',
+                successTitle: 'Payment Submitted Successfully!',
+                successDesc: 'Your transaction has been sent to Nathanael. You will receive your 35-Day License Key on Telegram shortly.',
+                copied: 'Copied to clipboard!'
+            },
+            am: {
+                langBtn: 'አማርኛ',
+                brokerTitle: 'በ ICE CORE ፓርትነር ብሮከር ሊንክ ተመዝግቤያለሁ (-30%)',
+                brokerSub: 'በእኛ የ Exness, HFM, Vantage, GatesFX ወይም Pepperstone ሊንክ ከተመዘገቡ የ 30% ቅናሽ ያገኛሉ።',
+                lblBrokerWallet: 'የብሮከር ዋሌት / አካውንት መለያ (Wallet ID) *',
+                brokerWalletHelp: 'የ 30% ቅናሹን ለማረጋገጥ እባክዎን የብሮከር ዋሌት አይዲዎን ያስገቡ።',
+                sendViaTB: 'በትክክል {amount} በቴሌብር ይላኩ ወደ፦',
+                sendViaUSDT: 'በትክክል {amount} በ USDT (TRC20) ይላኩ ወደ፦',
+                tapTB: 'ቁጥሩን ኮፒ ለማድረግ ይጫኑ',
+                tapUSDT: 'የ USDT አድራሻውን ኮፒ ለማድረግ ይጫኑ',
+                lblName: 'ሙሉ ስም *',
+                lblPhone: 'ስልክ ቁጥር *',
+                lblEmail: 'የኢሜይል አድራሻ (ለዌብሳይት መግቢያ) *',
+                lblTxRefTB: 'የቴሌብር የደረሰኝ ቁጥር (TxRef) *',
+                lblTxRefUSDT: 'የክሪፕቶ የግብይት ቁጥር (TxID Hash) *',
+                lblReceipt: 'የክፍያ ደረሰኝ ፎቶ (ስክሪን ሻት) *',
+                uploadTitle: 'የደረሰኝ ስክሪን ሻት ለመጫን እዚህ ይጫኑ',
+                uploadSub: 'PNG, JPG, JPEG (እስከ 10MB)',
+                incompleteNotice: 'ለማረጋገጥ እባክዎን ሁሉንም መረጃዎች ይሙሉ እና የደረሰኝ ፎቶ ያያይዙ።',
+                btnVerifyTB: 'የቴሌብር ክፍያውን አረጋግጥ',
+                btnVerifyUSDT: 'የ USDT ክፍያውን አረጋግጥ',
+                successTitle: 'ክፍያዎ በተሳካ ሁኔታ ተልኳል!',
+                successDesc: 'የክፍያ መረጃዎ ለናታኔል ደርሷል። የ 35 ቀኑን የፍቃድ ቁልፍ (License Key) በአጭር ጊዜ ውስጥ በቴሌግራም ይደርስዎታል።',
+                copied: 'ኮፒ ተደርጓል!'
+            }
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'am' : 'en';
+            updateLanguageUI();
+        }
+
+        function updateLanguageUI() {
+            const t = translations[currentLang];
+            document.getElementById('langLabel').innerText = t.langBtn;
+            document.getElementById('txtBrokerTitle').innerText = t.brokerTitle;
+            document.getElementById('txtBrokerSub').innerText = t.brokerSub;
+            document.getElementById('lblBrokerWallet').innerHTML = `<i data-lucide="wallet" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblBrokerWallet}`;
+            document.getElementById('txtBrokerWalletHelp').innerText = t.brokerWalletHelp;
+            document.getElementById('lblName').innerHTML = `<i data-lucide="user" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblName}`;
+            document.getElementById('lblPhone').innerHTML = `<i data-lucide="phone" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblPhone}`;
+            document.getElementById('lblEmail').innerHTML = `<i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblEmail}`;
+            document.getElementById('lblReceipt').innerHTML = `<i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblReceipt}`;
+            document.getElementById('txtUploadPromptTitle').innerText = t.uploadTitle;
+            document.getElementById('txtUploadPromptSub').innerText = t.uploadSub;
+            document.getElementById('txtIncompleteNotice').innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-amber-400"></i> ${t.incompleteNotice}`;
+            document.getElementById('txtSuccessTitle').innerText = t.successTitle;
+            document.getElementById('txtSuccessDesc').innerHTML = t.successDesc;
+            lucide.createIcons();
+            updateDisplay();
+        }
+
+        function toggleBrokerDiscount() {
+            const isChecked = document.getElementById('brokerDiscount').checked;
+            const container = document.getElementById('brokerWalletContainer');
+            const walletInput = document.getElementById('broker_wallet_id');
+
+            if (isChecked) {
+                container.classList.remove('hidden');
+                walletInput.required = true;
+            } else {
+                container.classList.add('hidden');
+                walletInput.required = false;
+                walletInput.value = '';
+            }
+            lucide.createIcons();
+            updateDisplay();
+            checkFormValidity();
+        }
+
+        function setPaymentMethod(method) {
+            currentMethod = method;
+            const btnTB = document.getElementById('btnTelebirr');
+            const btnCR = document.getElementById('btnCrypto');
+
+            if (method === 'telebirr') {
+                btnTB.className = 'py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-white bg-cyan-600 shadow-md shadow-cyan-600/20';
+                btnCR.className = 'py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-slate-400 bg-white border border-slate-300 hover:text-slate-600';
+            } else {
+                btnCR.className = 'py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-white bg-cyan-600 shadow-md shadow-cyan-600/20';
+                btnTB.className = 'py-2.5 px-4 rounded-lg font-bold text-sm transition-all text-slate-400 bg-white border border-slate-300 hover:text-slate-600';
+            }
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const t = translations[currentLang];
+            const isDiscounted = document.getElementById('brokerDiscount').checked;
+
+            if (currentMethod === 'telebirr') {
+                const price = isDiscounted ? Math.round(baseTelebirrPrice * 0.7) : baseTelebirrPrice;
+                const formattedPrice = `${price.toLocaleString()} ETB`;
+                
+                document.getElementById('txtSendInstruction').innerHTML = t.sendViaTB.replace('{amount}', `<span class="font-bold text-white text-sm">${formattedPrice}</span>`);
+                document.getElementById('paymentTarget').innerText = telebirrNumber;
+                document.getElementById('txtTapToCopy').innerText = t.tapTB;
+                document.getElementById('accountName').innerText = accountHolderName;
+                document.getElementById('lblTxRef').innerHTML = `<i data-lucide="receipt" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblTxRefTB}`;
+                document.getElementById('tx_ref').placeholder = 'E.G.  7K3DF9L';
+                document.getElementById('btnVerifyText').innerText = t.btnVerifyTB;
+            } else {
+                const price = isDiscounted ? Math.round(baseUsdtPrice * 0.7) : baseUsdtPrice;
+                const formattedPrice = `$${price} USDT`;
+                
+                document.getElementById('txtSendInstruction').innerHTML = t.sendViaUSDT.replace('{amount}', `<span class="font-bold text-white text-sm">${formattedPrice}</span>`);
+                document.getElementById('paymentTarget').innerText = usdtAddress;
+                document.getElementById('txtTapToCopy').innerText = t.tapUSDT;
+                document.getElementById('accountName').innerText = 'USDT TRC20';
+                document.getElementById('lblTxRef').innerHTML = `<i data-lucide="receipt" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblTxRefUSDT}`;
+                document.getElementById('tx_ref').placeholder = 'E.G.  4a7b9c8d...';
+                document.getElementById('btnVerifyText').innerText = t.btnVerifyUSDT;
+            }
+            lucide.createIcons();
+        }
+
+        function copyPaymentTarget() {
+            const target = document.getElementById('paymentTarget').innerText;
+            const t = translations[currentLang];
+            navigator.clipboard.writeText(target).then(() => {
+                if (tg && tg.showPopup) {
+                    tg.showPopup({ message: t.copied });
+                } else {
+                    alert(t.copied);
+                }
+            });
+        }
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('previewName').innerText = file.name;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    receiptBase64 = e.target.result;
+                    document.getElementById('previewImg').src = receiptBase64;
+                    document.getElementById('uploadPrompt').classList.add('hidden');
+                    document.getElementById('uploadPreview').classList.remove('hidden');
+                    lucide.createIcons();
+                    checkFormValidity();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Check if all required fields are filled to show Verify Button
+        function checkFormValidity() {
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const txRef = document.getElementById('tx_ref').value.trim();
+            const isDiscounted = document.getElementById('brokerDiscount').checked;
+            const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
+
+            const isBrokerValid = !isDiscounted || (isDiscounted && brokerWalletId.length > 0);
+            const isFilled = name.length > 0 && phone.length > 0 && email.length > 3 && txRef.length > 0 && receiptBase64.length > 0 && isBrokerValid;
+
+            const submitContainer = document.getElementById('submitButtonContainer');
+            const hintContainer = document.getElementById('incompleteHint');
+
+            if (isFilled) {
+                submitContainer.classList.remove('hidden');
+                hintContainer.classList.add('hidden');
+            } else {
+                submitContainer.classList.add('hidden');
+                hintContainer.classList.remove('hidden');
+            }
+        }
+
+        // Form Submit
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!receiptBase64) {
+                alert(currentLang === 'en' ? 'Please attach a payment receipt screenshot.' : 'እባክዎ የክፍያ ደረሰኝ ፎቶ ያያይዙ።');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            const btnVerifyText = document.getElementById('btnVerifyText');
+            submitBtn.disabled = true;
+            btnVerifyText.innerText = currentLang === 'en' ? 'Submitting...' : 'በመላክ ላይ...';
+
+            const isDiscounted = document.getElementById('brokerDiscount').checked;
+            const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
+            const price = currentMethod === 'telebirr' 
+                ? (isDiscounted ? Math.round(baseTelebirrPrice * 0.7) : baseTelebirrPrice) + ' ETB'
+                : (isDiscounted ? Math.round(baseUsdtPrice * 0.7) : baseUsdtPrice) + ' USDT';
+
+            const payload = {
+                user_id: telegramUserId,
+                name: document.getElementById('name').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                telegram_username: telegramUsername,
+                broker_wallet_id: isDiscounted ? brokerWalletId : '',
+                package_type: isDiscounted ? 'ICE 35-Day (Partner -30%)' : 'ICE 35-Day Standard',
+                price: price,
+                payment_method: currentMethod === 'telebirr' ? 'TELEBIRR' : 'USDT TRC20',
+                tx_ref: document.getElementById('tx_ref').value.trim(),
+                receipt_url: receiptBase64
+            };
+
+            try {
+                const response = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const resData = await response.json();
+                if (response.ok && resData.success) {
+                    document.getElementById('verifyForm').classList.add('hidden');
+                    document.getElementById('confirmedOrderId').innerText = `Order ID: ${resData.order_id}`;
+                    document.getElementById('successCard').classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    alert('Error: ' + (resData.error || 'Failed to submit'));
+                    submitBtn.disabled = false;
+                    btnVerifyText.innerText = currentMethod === 'telebirr' ? translations[currentLang].btnVerifyTB : translations[currentLang].btnVerifyUSDT;
+                }
+            } catch (err) {
+                alert('Network error. Please try again.');
+                submitBtn.disabled = false;
+                btnVerifyText.innerText = currentMethod === 'telebirr' ? translations[currentLang].btnVerifyTB : translations[currentLang].btnVerifyUSDT;
+            }
+        });
+
+        function closeWebApp() {
+            if (tg) tg.close();
+        }
+
+        // Initialize on load
+        updateDisplay();
+        checkFormValidity();
+    </script>
+</body>
+
+</html>
