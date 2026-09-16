@@ -1033,7 +1033,7 @@ async function handleMessage(msg) {
     }
 
     // 👥 Referral Link
-    if (text === '👥 Referral Link' || text === '👥 የእኔ ሪፈራል ሊንክ') {
+    if (text.startsWith('/ref') || text === '👥 Referral Link' || text === '👥 የእኔ ሪፈራል ሊንክ') {
         const refLink = `https://t.me/${BOT_USERNAME}?start=ref_${userId}`;
         const refMsg = `👥 <b>Your Unique Referral Link / የእርስዎ የሪፈራል ሊንክ፦</b>\n\n` +
             `<code>${refLink}</code>\n\n` +
@@ -1058,7 +1058,7 @@ async function handleMessage(msg) {
     }
 
     // 💰 My Balance
-    if (text === '💰 My Balance' || text === '💰 የእኔ ባላንስ') {
+    if (text.startsWith('/balance') || text === '💰 My Balance' || text === '💰 የእኔ ባላንስ') {
         const balance = users[userId]?.points || 0;
         await sendTelegram('sendMessage', {
             chat_id: chatId,
@@ -1073,7 +1073,7 @@ async function handleMessage(msg) {
     }
 
     // 🔑 My License Key
-    if (text === '🔑 My License Key' || text === '🔑 የእኔ ላይሰንስ ኪ') {
+    if (text === '/key' || (!isAdmin && text.startsWith('/license')) || text === '🔑 My License Key' || text === '🔑 የእኔ ላይሰንስ ኪ') {
         const licenseKey = users[userId]?.license_key;
         if (licenseKey) {
             await sendTelegram('sendMessage', {
@@ -1095,7 +1095,7 @@ async function handleMessage(msg) {
     }
 
     // 📥 Withdraw Commission (SUNDAY ONLY / እሁድ ቀን ብቻ)
-    if (text === '📥 Withdraw Commission' || text === '📥 ብር ማውጫ (Withdraw)') {
+    if (text.startsWith('/withdraw') || text === '📥 Withdraw Commission' || text === '📥 ብር ማውጫ (Withdraw)') {
         const currentPoints = users[userId]?.points || 0;
 
         // Check Ethiopian / East Africa Time (EAT = UTC+3)
@@ -1160,7 +1160,7 @@ async function handleMessage(msg) {
     }
 
     // 🌐 Open Website
-    if (text === '🌐 Open Website' || text === '🌐 ዌብሳይቱን ክፈት (ICE)') {
+    if (text.startsWith('/website') || text === '🌐 Open Website' || text === '🌐 ዌብሳይቱን ክፈት (ICE)') {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: `🌐 <b>ICE Platform / ኦፊሳዊ ድህረ ገጽ፦</b>\n\n<a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n\nLogin with your registered email and License Key.`,
@@ -1171,7 +1171,7 @@ async function handleMessage(msg) {
     }
 
     // 📞 Support
-    if (text === '📞 Support' || text === '📞 ድጋፍ ሰጪ (Support)') {
+    if (text.startsWith('/support') || text === '📞 Support' || text === '📞 ድጋፍ ሰጪ (Support)') {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: `📞 <b>ICE Academy Support Team:</b>\n\n` +
@@ -1435,33 +1435,84 @@ async function handleMessage(msg) {
 }
 
 // -------------------------------------------------------------
-// 🔄 AUTOMATIC TELEGRAM POLLING (FALLBACK FOR LOCAL TESTING)
+// 🤖 AUTOMATIC TELEGRAM INITIALIZATION (WEBHOOK & COMMANDS)
 // -------------------------------------------------------------
-let lastUpdateId = 0;
-async function startTelegramPolling() {
-    if (!BOT_TOKEN || BOT_TOKEN === 'your_telegram_bot_token_here') return;
-    console.log('🤖 Telegram Long-Polling started...');
+let isPollingActive = false;
 
-    setInterval(async () => {
+async function startSafePolling() {
+    if (isPollingActive) return;
+    isPollingActive = true;
+    console.log('🤖 Starting safe sequential Telegram polling...');
+
+    try {
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`, { drop_pending_updates: false });
+    } catch (e) {}
+
+    let offset = 0;
+    while (isPollingActive) {
         try {
             const res = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`, {
-                params: { offset: lastUpdateId + 1, timeout: 10 }
+                params: { offset: offset, timeout: 20 },
+                timeout: 25000
             });
 
-            if (res.data && res.data.ok && res.data.result.length > 0) {
+            if (res.data && res.data.ok && Array.isArray(res.data.result) && res.data.result.length > 0) {
                 for (const update of res.data.result) {
-                    lastUpdateId = update.update_id;
+                    offset = update.update_id + 1;
                     if (update.callback_query) {
-                        await handleCallbackQuery(update.callback_query);
+                        handleCallbackQuery(update.callback_query).catch(err => console.error('Callback error:', err));
                     } else if (update.message) {
-                        await handleMessage(update.message);
+                        handleMessage(update.message).catch(err => console.error('Message error:', err));
                     }
                 }
             }
-        } catch (e) {
-            // Ignore polling network blips
+        } catch (err) {
+            // Wait 2 seconds on network error before retrying
+            await new Promise(r => setTimeout(r, 2000));
         }
-    }, 2000);
+    }
+}
+
+async function setupTelegram() {
+    if (!BOT_TOKEN || BOT_TOKEN === 'your_telegram_bot_token_here') return;
+
+    // 1. Automatically register bot commands in Telegram (No BotFather manual typing needed!)
+    try {
+        console.log('📝 Registering Bot Commands with Telegram...');
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
+            commands: [
+                { command: 'start', description: '💎 Open Registration & Main Menu' },
+                { command: 'balance', description: '💰 Check Referral Balance' },
+                { command: 'withdraw', description: '📥 Withdraw Commission (Sundays)' },
+                { command: 'support', description: '📞 Contact ICE Admin Support' }
+            ]
+        });
+        console.log('✅ Bot commands registered with Telegram successfully!');
+    } catch (err) {
+        console.warn('⚠️ setMyCommands warning:', err.message);
+    }
+
+    // 2. Set Webhook if hosted on HTTPS (e.g. Render)
+    const hostUrl = (process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL || WEB_URL || '').replace(/\/$/, '');
+    if (hostUrl && hostUrl.startsWith('https://')) {
+        const webhookEndpoint = `${hostUrl}/api/telegram-webhook`;
+        try {
+            console.log(`🌐 Setting Telegram Webhook to: ${webhookEndpoint}...`);
+            const setRes = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+                url: webhookEndpoint,
+                drop_pending_updates: false
+            });
+            if (setRes.data && setRes.data.ok) {
+                console.log(`✅ Telegram Webhook registered successfully at: ${webhookEndpoint}`);
+                return; // Webhook active and handling all updates!
+            }
+        } catch (e) {
+            console.error('❌ Failed to set Telegram Webhook:', e.response ? e.response.data : e.message);
+        }
+    }
+
+    // Fallback: Use safe sequential polling
+    startSafePolling();
 }
 
 // -------------------------------------------------------------
@@ -1497,6 +1548,6 @@ app.listen(PORT, async () => {
     console.log(`===============================================`);
 
     await syncFromGoogleSheets();
-    startTelegramPolling();
+    await setupTelegram();
     startKeepAlivePing();
 });
