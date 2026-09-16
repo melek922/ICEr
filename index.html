@@ -216,8 +216,8 @@
             </div>
         </div>
 
-        <!-- 1. Broker Partner Discount Box -->
-        <div class="rounded-xl border border-cyan-500/30 bg-[#0e1a2f] p-3.5 transition-all">
+        <!-- 1. Broker Partner Discount Box (Hidden for Negadras Tier) -->
+        <div id="brokerDiscountContainer" class="rounded-xl border border-cyan-500/30 bg-[#0e1a2f] p-3.5 transition-all">
             <label class="flex items-start gap-3 cursor-pointer select-none">
                 <input type="checkbox" id="brokerDiscount" onchange="toggleBrokerDiscount()" class="custom-checkbox w-4 h-4 mt-0.5 rounded cursor-pointer">
                 <div>
@@ -238,6 +238,28 @@
                 <input type="text" id="broker_wallet_id" oninput="checkFormValidity()" placeholder="e.g. 18273645 (Exness/HFM Wallet ID)" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-cyan-500/40 focus:border-cyan-400 focus:outline-none text-xs text-white placeholder:text-slate-600 font-mono">
                 <p class="text-[10px] text-slate-400" id="txtBrokerWalletHelp">
                     Please enter your broker wallet ID so we can verify your 30% discount.
+                </p>
+            </div>
+        </div>
+
+        <!-- 1b. Negadras Student Verification Box (Visible ONLY for Negadras Tier) -->
+        <div id="negadrasStudentContainer" class="hidden rounded-xl border border-amber-500/40 bg-[#141b29] p-3.5 space-y-2 fade-in">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-amber-300" id="txtNegadrasVerifyTitle">Negadras Student Verification (50% Off)</h4>
+                    <p class="text-[10px] text-slate-400" id="txtNegadrasVerifySub">Exclusive 50% discount for Negadras Level 2 students.</p>
+                </div>
+            </div>
+            <div class="pt-2 border-t border-amber-500/20 space-y-1.5">
+                <label class="block text-xs font-semibold text-amber-300 flex items-center gap-1" id="lblStudentId">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-400"></i> Negadras Student ID *
+                </label>
+                <input type="text" id="student_id" oninput="checkFormValidity()" placeholder="e.g. NEG-9281 (or your Negadras Batch/ID)" class="w-full px-3.5 py-2.5 rounded-lg bg-[#09101d] border border-amber-500/40 focus:border-amber-400 focus:outline-none text-xs text-white placeholder:text-slate-600 font-mono uppercase">
+                <p class="text-[10px] text-slate-400" id="txtStudentIdHelp">
+                    Please enter your Negadras Student ID to verify your 50% discount eligibility.
                 </p>
             </div>
         </div>
@@ -480,6 +502,10 @@
                 brokerSub: 'Get 30% off your subscription if you use our IB link on Exness, HFM, Vantage, GatesFX, or Pepperstone.',
                 lblBrokerWallet: 'Broker Account / Wallet ID *',
                 brokerWalletHelp: 'Please enter your broker wallet ID so we can verify your 30% discount.',
+                txtNegadrasVerifyTitle: 'Negadras Student Verification (50% Off)',
+                txtNegadrasVerifySub: 'Exclusive 50% discount for Negadras Level 2 students.',
+                lblStudentId: 'Negadras Student ID *',
+                txtStudentIdHelp: 'Please enter your Negadras Student ID to verify your 50% discount eligibility.',
                 sendViaTB: 'Send exactly {amount} via Telebirr to:',
                 sendViaUSDT: 'Send exactly {amount} via Crypto (USDT TRC20) to:',
                 tapTB: 'Tap to copy number',
@@ -518,6 +544,10 @@
                 brokerSub: 'በእኛ የ Exness, HFM, Vantage, GatesFX ወይም Pepperstone ሊንክ ከተመዘገቡ የ 30% ቅናሽ ያገኛሉ።',
                 lblBrokerWallet: 'የብሮከር ዋሌት / አካውንት መለያ (Wallet ID) *',
                 brokerWalletHelp: 'የ 30% ቅናሹን ለማረጋገጥ እባክዎን የብሮከር ዋሌት አይዲዎን ያስገቡ።',
+                txtNegadrasVerifyTitle: 'የነጋድራስ ተማሪ ማረጋገጫ (የ 50% ቅናሽ)',
+                txtNegadrasVerifySub: 'ለነጋድራስ ሌቭል 2 ተማሪዎች ብቻ የተዘጋጀ ልዩ የ 50% ቅናሽ።',
+                lblStudentId: 'የነጋድራስ የተማሪ መለያ ቁጥር (Student ID) *',
+                txtStudentIdHelp: 'የ 50% ቅናሹን ተጠቃሚነት ለማረጋገጥ እባክዎን የነጋድራስ የተማሪ መለያ ቁጥርዎን ያስገቡ።',
                 sendViaTB: 'በትክክል {amount} በቴሌብር ይላኩ ወደ፦',
                 sendViaUSDT: 'በትክክል {amount} በ USDT (TRC20) ይላኩ ወደ፦',
                 tapTB: 'ቁጥሩን ኮፒ ለማድረግ ይጫኑ',
@@ -576,7 +606,41 @@
                 }
             });
 
+            const brokerContainer = document.getElementById('brokerDiscountContainer');
+            const negadrasContainer = document.getElementById('negadrasStudentContainer');
+            const brokerCheckbox = document.getElementById('brokerDiscount');
+            const brokerWalletInput = document.getElementById('broker_wallet_id');
+            const studentIdInput = document.getElementById('student_id');
+
+            if (selectedPackageId === 'negadras_tier') {
+                // Hide 30% broker discount & uncheck (cannot combine discounts)
+                if (brokerContainer) brokerContainer.classList.add('hidden');
+                if (brokerCheckbox) brokerCheckbox.checked = false;
+                const brokerWalletBox = document.getElementById('brokerWalletContainer');
+                if (brokerWalletBox) brokerWalletBox.classList.add('hidden');
+                if (brokerWalletInput) {
+                    brokerWalletInput.required = false;
+                    brokerWalletInput.value = '';
+                }
+
+                // Show Negadras Student ID input
+                if (negadrasContainer) negadrasContainer.classList.remove('hidden');
+                if (studentIdInput) studentIdInput.required = true;
+            } else {
+                // Show 30% broker discount for other tiers
+                if (brokerContainer) brokerContainer.classList.remove('hidden');
+
+                // Hide Negadras Student ID input
+                if (negadrasContainer) negadrasContainer.classList.add('hidden');
+                if (studentIdInput) {
+                    studentIdInput.required = false;
+                    studentIdInput.value = '';
+                }
+            }
+
+            lucide.createIcons();
             updateDisplay();
+            checkFormValidity();
         }
 
         function toggleLanguage() {
@@ -593,6 +657,10 @@
             document.getElementById('txtBrokerSub').innerText = t.brokerSub;
             document.getElementById('lblBrokerWallet').innerHTML = `<i data-lucide="wallet" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblBrokerWallet}`;
             document.getElementById('txtBrokerWalletHelp').innerText = t.brokerWalletHelp;
+            document.getElementById('txtNegadrasVerifyTitle').innerText = t.txtNegadrasVerifyTitle;
+            document.getElementById('txtNegadrasVerifySub').innerText = t.txtNegadrasVerifySub;
+            document.getElementById('lblStudentId').innerHTML = `<i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-400"></i> ${t.lblStudentId}`;
+            document.getElementById('txtStudentIdHelp').innerText = t.txtStudentIdHelp;
             document.getElementById('lblName').innerHTML = `<i data-lucide="user" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblName}`;
             document.getElementById('lblPhone').innerHTML = `<i data-lucide="phone" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblPhone}`;
             document.getElementById('lblEmail').innerHTML = `<i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-400"></i> ${t.lblEmail}`;
@@ -768,11 +836,19 @@
             const phone = document.getElementById('phone').value.trim();
             const email = document.getElementById('email').value.trim();
             const txRef = document.getElementById('tx_ref').value.trim();
-            const isDiscounted = document.getElementById('brokerDiscount').checked;
+            const isNegadras = selectedPackageId === 'negadras_tier';
+            const isDiscounted = !isNegadras && document.getElementById('brokerDiscount').checked;
             const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
+            const studentId = document.getElementById('student_id') ? document.getElementById('student_id').value.trim() : '';
 
-            const isBrokerValid = !isDiscounted || (isDiscounted && brokerWalletId.length > 0);
-            const isFilled = name.length > 0 && phone.length > 0 && email.length > 3 && txRef.length > 0 && receiptBase64.length > 0 && isBrokerValid;
+            let isTierValid = true;
+            if (isNegadras) {
+                isTierValid = studentId.length > 0;
+            } else if (isDiscounted) {
+                isTierValid = brokerWalletId.length > 0;
+            }
+
+            const isFilled = name.length > 0 && phone.length > 0 && email.length > 3 && txRef.length > 0 && receiptBase64.length > 0 && isTierValid;
 
             const submitContainer = document.getElementById('submitButtonContainer');
             const hintContainer = document.getElementById('incompleteHint');
@@ -795,12 +871,19 @@
                 return;
             }
 
+            const isNegadras = selectedPackageId === 'negadras_tier';
+            const studentId = document.getElementById('student_id') ? document.getElementById('student_id').value.trim() : '';
+            if (isNegadras && !studentId) {
+                alert(currentLang === 'en' ? 'Please enter your Negadras Student ID.' : 'እባክዎ የነጋድራስ የተማሪ መለያ ቁጥርዎን ያስገቡ።');
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             const btnVerifyText = document.getElementById('btnVerifyText');
             submitBtn.disabled = true;
             btnVerifyText.innerText = currentLang === 'en' ? 'Submitting Order...' : 'ትዕዛዙን በመላክ ላይ...';
 
-            const isDiscounted = document.getElementById('brokerDiscount').checked;
+            const isDiscounted = !isNegadras && document.getElementById('brokerDiscount').checked;
             const brokerWalletId = document.getElementById('broker_wallet_id').value.trim();
             const pkg = PACKAGES[selectedPackageId] || PACKAGES.mastery_30day;
 
@@ -808,7 +891,12 @@
                 ? (isDiscounted ? Math.round(pkg.baseTB * 0.7) : pkg.baseTB).toLocaleString() + ' ETB'
                 : (isDiscounted ? Math.round(pkg.baseUSDT * 0.7) : pkg.baseUSDT) + ' USDT';
 
-            const packageName = isDiscounted ? `${pkg.titleEn} (Partner -30%)` : pkg.titleEn;
+            let packageName = pkg.titleEn;
+            if (isNegadras) {
+                packageName = `ICE Negadras Tier (50% Off - ID: ${studentId})`;
+            } else if (isDiscounted) {
+                packageName = `${pkg.titleEn} (Partner -30%)`;
+            }
 
             const payload = {
                 user_id: telegramUserId,
@@ -816,6 +904,7 @@
                 phone: document.getElementById('phone').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 telegram_username: telegramUsername,
+                student_id: isNegadras ? studentId : '',
                 broker_wallet_id: isDiscounted ? brokerWalletId : '',
                 package_id: selectedPackageId,
                 package_type: packageName,
