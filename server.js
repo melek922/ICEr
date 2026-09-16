@@ -315,7 +315,11 @@ app.post('/api/order', async (req, res) => {
             `🆔 <b>User ID:</b> <code>${orderData.user_id}</code>\n` +
             `🔢 <b>Order ID:</b> <code>${orderId}</code>\n\n` +
             `────────────────────\n` +
-            `👉 <i>Check the live receipt above, then click Approve to generate and send the License Key automatically.</i>`;
+            `👉 <i>Check the live receipt above, then click Approve to generate and send the License Key automatically.</i>\n\n` +
+            `💬 <b>Quick Reply / መልስ ለመስጠት፦</b>\n` +
+            `1️⃣ <i>Swipe & Reply directly to this message</i>\n` +
+            `2️⃣ <i>Or copy and send:</i>\n` +
+            `<code>/reply ${orderData.user_id} Hello ${orderData.name}, </code>`;
 
         const inlineKeyboard = {
             inline_keyboard: [
@@ -878,11 +882,15 @@ async function handleMessage(msg) {
             `👤 <b>Student:</b> ${escapeHTML(studentName)} (@${username})\n` +
             `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
             `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
-            `💰 <b>Amount:</b> 5,999 ETB (or $45 USDT)\n` +
+            `💰 <b>Amount:</b> 6,000 ETB (or $45 USDT)\n` +
             `📝 <b>Note / TxRef:</b> ${escapeHTML(userCaption) || '<i>(No caption provided)</i>'}\n` +
             `⏰ <b>Date:</b> ${new Date().toLocaleString()}\n\n` +
             `────────────────────\n` +
-            `👉 <i>Check the screenshot above, then click Approve to generate and send the License Key automatically:</i>`;
+            `👉 <i>Check the screenshot above, then click Approve to generate and send the License Key automatically.</i>\n\n` +
+            `💬 <b>Quick Reply / መልስ ለመስጠት፦</b>\n` +
+            `1️⃣ <i>Swipe & Reply directly to this photo</i>\n` +
+            `2️⃣ <i>Or copy and send:</i>\n` +
+            `<code>/reply ${userId} Hello ${escapeHTML(studentName)}, </code>`;
 
         const adminKeyboard = {
             inline_keyboard: [
@@ -1399,7 +1407,10 @@ async function handleMessage(msg) {
             `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
             `💬 <b>Message:</b>\n<i>"${escapeHTML(text)}"</i>\n\n` +
             `────────────────────\n` +
-            `💡 <i>To reply: <b>Swipe / Reply</b> to this message directly in Telegram, or click below:</i>`;
+            `💬 <b>Quick Reply / መልስ ለመስጠት፦</b>\n` +
+            `1️⃣ <i>Swipe & Reply directly to this message</i>\n` +
+            `2️⃣ <i>Or copy and send:</i>\n` +
+            `<code>/reply ${userId} Hello ${escapeHTML(msg.from.first_name || 'Trader')}, </code>`;
 
         const replyKeyboard = {
             inline_keyboard: [
