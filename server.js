@@ -1006,8 +1006,9 @@ async function handleMessage(msg) {
 
     // /start command
     if (text.startsWith('/start')) {
-        const welcomeMsg = `👋 <b>Welcome to ICE Trading Psychology Academy!</b>\n` +
-            `👋 <b>እንኳን ወደ ICE Trading Psychology Academy በሰላም መጡ!</b>\n\n` +
+        const userFirstName = escapeHTML(msg.from.first_name || 'Trader');
+        const welcomeMsg = `👋 <b>Welcome to ICE Trading Psychology Academy, ${userFirstName}!</b>\n` +
+            `👋 <b>ሰላም ${userFirstName}፣ እንኳን ወደ ICE Trading Psychology Academy በሰላም መጡ!</b>\n\n` +
             `🧠 <b>ICE — Master Your Trading Psychology & Discipline</b>\n` +
             `ስሜትዎን ይቆጣጠሩ፣ የትሬዲንግ ፍርሃትን ያስወግዱ፣ ጠንካራ የሪስክ ማኔጅመንት ዲሲፕሊን ይገንቡ።\n\n` +
             `🌟 <b>Choose Your Path / የስልጠና አማራጮች፦</b>\n` +
