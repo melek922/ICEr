@@ -466,12 +466,6 @@
                 const u = tg.initDataUnsafe.user;
                 telegramUserId = u.id ? u.id.toString() : 'WEBSITE';
                 telegramUsername = u.username ? `@${u.username}` : '';
-                
-                // Pre-fill Name if available
-                const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
-                if (fullName) {
-                    document.getElementById('name').value = fullName;
-                }
             }
         }
 
