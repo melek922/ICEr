@@ -225,6 +225,7 @@ app.post('/api/order', async (req, res) => {
             email,
             telegram_username,
             broker_wallet_id,
+            student_id,
             package_type,
             price,
             payment_method,
@@ -248,6 +249,7 @@ app.post('/api/order', async (req, res) => {
             phone: phone || 'N/A',
             email: email || 'N/A',
             telegram_username: telegram_username || 'N/A',
+            student_id: student_id || 'N/A',
             broker_wallet_id: broker_wallet_id || 'N/A',
             package_type: package_type || 'ICE 35-Day Mastery',
             price: price || '5,999 ETB',
@@ -297,6 +299,10 @@ app.post('/api/order', async (req, res) => {
             `💳 <b>Method:</b> ${orderData.payment_method}\n` +
             `🧾 <b>TxRef / Hash:</b> <code>${orderData.tx_ref}</code>\n` +
             `🌐 <b>Official Receipt:</b> <a href="${verifyUrl}">Click to View Live Receipt</a>\n\n`;
+
+        if (orderData.student_id && orderData.student_id !== 'N/A') {
+            adminMsg += `🎓 <b>Negadras Student ID:</b> <code>${orderData.student_id}</code> (50% Negadras Tier)\n\n`;
+        }
 
         if (orderData.broker_wallet_id && orderData.broker_wallet_id !== 'N/A') {
             adminMsg += `🏢 <b>Broker Wallet ID:</b> <code>${orderData.broker_wallet_id}</code> (-30% Discount)\n\n`;
@@ -1156,7 +1162,7 @@ async function handleMessage(msg) {
     if (text === '🌐 Open Website' || text === '🌐 ዌብሳይቱን ክፈት (ICE)') {
         await sendTelegram('sendMessage', {
             chat_id: chatId,
-            text: `🌐 <b>ICE Platform / ኦፊሴላዊ ድረ-ገጽ፦</b>\n\n<a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n\nLogin with your registered email and License Key.`,
+            text: `🌐 <b>ICE Platform / ኦፊሳዊ ድህረ ገጽ፦</b>\n\n<a href="${WEBSITE_URL}">${WEBSITE_URL}</a>\n\nLogin with your registered email and License Key.`,
             parse_mode: 'HTML',
             reply_markup: MAIN_KEYBOARD_EN
         });
