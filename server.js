@@ -198,6 +198,108 @@ function syncToGoogle(action, payload) {
         .catch(e => console.error(`❌ Google Sheets Network Error (${action}):`, e.message));
 }
 
+// 🌐 Website Integration Helper: Sync Order to Website Dashboard (ice-core.vercel.app)
+async function syncOrderToWebsite(orderData) {
+    if (!WEBSITE_URL) return;
+    try {
+        console.log(`🌐 Syncing order ${orderData.order_id} to website (${WEBSITE_URL})...`);
+        const payload = {
+            orderId: orderData.order_id,
+            userId: orderData.user_id ? orderData.user_id.toString() : '',
+            telegramId: orderData.user_id ? orderData.user_id.toString() : '',
+            name: orderData.name || 'Student',
+            email: orderData.email || 'N/A',
+            phone: orderData.phone || 'N/A',
+            telegramUsername: orderData.telegram_username || 'N/A',
+            package: orderData.package_type || 'ICE 35-Day Mastery',
+            tier: orderData.package_type || 'ICE 35-Day Mastery',
+            price: orderData.price || '5,999 ETB',
+            amount: orderData.price || '5,999 ETB',
+            method: orderData.payment_method || 'TELEGRAM_MANUAL',
+            paymentMethod: orderData.payment_method || 'TELEGRAM_MANUAL',
+            txRef: orderData.tx_ref || 'N/A',
+            receiptUrl: orderData.receipt_url || '',
+            status: orderData.status || 'PENDING',
+            studentId: orderData.student_id || 'N/A',
+            brokerWalletId: orderData.broker_wallet_id || 'N/A',
+            createdAt: orderData.created_at || new Date().toISOString()
+        };
+
+        const res = await axios.post(`${WEBSITE_URL}/api/bot/register`, payload, {
+            timeout: 7000,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.data) {
+            console.log(`✅ Order ${orderData.order_id} synced to website dashboard successfully!`);
+        }
+    } catch (err) {
+        console.warn(`⚠️ Website order sync notice (${orderData.order_id}):`, err.response ? err.response.data : err.message);
+    }
+}
+
+// 🌐 Website Integration Helper: Notify Website of Approved Order
+async function notifyWebsiteApproval(order, licenseKey, adminId = 'ADMIN') {
+    if (!WEBSITE_URL) return;
+    try {
+        console.log(`🌐 Notifying website of approval for order ${order.order_id}...`);
+        const payload = {
+            action: 'approve',
+            status: 'SUCCESS',
+            orderId: order.order_id,
+            email: order.email,
+            userId: order.user_id ? order.user_id.toString() : '',
+            telegramId: order.user_id ? order.user_id.toString() : '',
+            licenseKey: licenseKey,
+            txRef: order.tx_ref,
+            package: order.package_type,
+            approvedAt: order.approved_at || new Date().toISOString(),
+            approvedBy: adminId
+        };
+
+        const res = await axios.post(`${WEBSITE_URL}/api/bot/register`, payload, {
+            timeout: 7000,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.data) {
+            console.log(`✅ Website approval notified successfully for order ${order.order_id}`);
+        }
+    } catch (err) {
+        console.warn(`⚠️ Website approval notify notice (${order.order_id}):`, err.response ? err.response.data : err.message);
+    }
+}
+
+// 🌐 Website Integration Helper: Notify Website of Rejected Order
+async function notifyWebsiteRejection(order, adminId = 'ADMIN') {
+    if (!WEBSITE_URL) return;
+    try {
+        console.log(`🌐 Notifying website of rejection for order ${order.order_id}...`);
+        const payload = {
+            action: 'reject',
+            status: 'REJECTED',
+            orderId: order.order_id,
+            email: order.email,
+            userId: order.user_id ? order.user_id.toString() : '',
+            telegramId: order.user_id ? order.user_id.toString() : '',
+            txRef: order.tx_ref,
+            rejectedAt: order.rejected_at || new Date().toISOString(),
+            rejectedBy: adminId
+        };
+
+        const res = await axios.post(`${WEBSITE_URL}/api/bot/register`, payload, {
+            timeout: 7000,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.data) {
+            console.log(`✅ Website rejection notified successfully for order ${order.order_id}`);
+        }
+    } catch (err) {
+        console.warn(`⚠️ Website rejection notify notice (${order.order_id}):`, err.response ? err.response.data : err.message);
+    }
+}
+
 // -------------------------------------------------------------
 // 🌐 API ENDPOINTS (FOR TELEGRAM WEBAPP & WEBSITE INTEGRATION)
 // -------------------------------------------------------------
@@ -278,6 +380,9 @@ app.post('/api/order', async (req, res) => {
 
         // Sync to Google Sheets
         syncToGoogle('new_order', orderData);
+
+        // Sync to Website Dashboard (ice-core.vercel.app)
+        syncOrderToWebsite(orderData);
 
         // 🔗 Generate Official Live Verification Link
         const cleanTxRef = (orderData.tx_ref || '').trim();
@@ -390,34 +495,167 @@ app.post('/api/order', async (req, res) => {
     }
 });
 
-// 2. Direct Website Manual Payment Webhook
+// 2. Direct Website Manual Payment & Dashboard Two-Way Sync Webhook
 app.post('/api/website-payment', async (req, res) => {
     try {
-        const { email, txRef, method, amount } = req.body;
-        const orderId = `WEB-${Date.now()}`;
+        const {
+            email,
+            txRef,
+            tx_ref,
+            method,
+            paymentMethod,
+            amount,
+            price,
+            orderId,
+            order_id,
+            status,
+            action,
+            licenseKey,
+            license_key,
+            userId,
+            user_id,
+            name
+        } = req.body;
+
+        const effectiveOrderId = orderId || order_id;
+        const effectiveTxRef = txRef || tx_ref || 'N/A';
+        const effectiveStatus = (status || action || '').toUpperCase();
+
+        // Case A: Website Admin approved order on website dashboard
+        if (effectiveStatus === 'APPROVED' || effectiveStatus === 'SUCCESS' || action === 'approve') {
+            const targetIdentifier = effectiveOrderId || email || effectiveTxRef;
+            console.log(`🌐 Received approval signal from website dashboard for: ${targetIdentifier}`);
+            if (targetIdentifier) {
+                await processOrderApproval(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.status(200).json({ success: true, message: 'Order approved and synced' });
+        }
+
+        // Case B: Website Admin rejected order on website dashboard
+        if (effectiveStatus === 'REJECTED' || action === 'reject') {
+            const targetIdentifier = effectiveOrderId || email || effectiveTxRef;
+            console.log(`🌐 Received rejection signal from website dashboard for: ${targetIdentifier}`);
+            if (targetIdentifier) {
+                await processOrderRejection(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.status(200).json({ success: true, message: 'Order rejected and synced' });
+        }
+
+        // Case C: New payment submission pending verification on website
+        const genOrderId = effectiveOrderId || `WEB-${Date.now()}`;
+        const newOrderData = {
+            order_id: genOrderId,
+            user_id: user_id || userId || 'WEBSITE',
+            name: name || email || 'Website Student',
+            phone: 'Via Website',
+            email: email || 'N/A',
+            telegram_username: 'N/A',
+            broker_wallet_id: 'N/A',
+            package_type: 'ICE 35-Day Mastery (Website)',
+            price: amount || price || '5,999 ETB',
+            payment_method: method || paymentMethod || 'TELEBIRR / WEBSITE',
+            receipt_url: '',
+            tx_ref: effectiveTxRef,
+            status: 'PENDING',
+            created_at: new Date().toISOString()
+        };
+
+        const orders = loadOrders();
+        orders[genOrderId] = newOrderData;
+        saveOrders(orders);
+        syncToGoogle('new_order', newOrderData);
 
         const adminMsg = `🌐 <b>New Payment on Website (ice-core.vercel.app)!</b>\n\n` +
             `📧 <b>Email:</b> <code>${email}</code>\n` +
-            `💳 <b>Method:</b> ${method || 'Telebirr/Crypto'}\n` +
-            `🧾 <b>TxRef / Hash:</b> <code>${txRef}</code>\n` +
-            `💰 <b>Amount:</b> ${amount || '5,999 ETB'}\n` +
+            `💳 <b>Method:</b> ${method || paymentMethod || 'Telebirr/Crypto'}\n` +
+            `🧾 <b>TxRef / Hash:</b> <code>${effectiveTxRef}</code>\n` +
+            `💰 <b>Amount:</b> ${amount || price || '5,999 ETB'}\n` +
+            `🔢 <b>Order ID:</b> <code>${genOrderId}</code>\n` +
             `⏰ <b>Date:</b> ${new Date().toLocaleString()}\n\n` +
             `────────────────────\n` +
-            `Approve on Website Dashboard or generate key via bot:\n` +
-            `<code>/license ${email}</code>`;
+            `👉 <i>Approve directly here or on the website dashboard!</i>`;
+
+        const inlineKeyboard = {
+            inline_keyboard: [
+                [
+                    { text: '✅ Approve & Send License Key', callback_data: `approve_${genOrderId}` },
+                    { text: '❌ Reject', callback_data: `reject_${genOrderId}` }
+                ]
+            ]
+        };
 
         for (const adminId of ADMIN_IDS) {
             await sendTelegram('sendMessage', {
                 chat_id: adminId,
                 text: adminMsg,
-                parse_mode: 'HTML'
+                parse_mode: 'HTML',
+                reply_markup: inlineKeyboard
             });
         }
 
-        res.status(200).json({ success: true });
+        res.status(200).json({ success: true, order_id: genOrderId });
     } catch (e) {
+        console.error('Website Payment Webhook Error:', e);
         res.status(500).json({ success: false, error: e.message });
     }
+});
+
+// 3. Two-Way Order Status & Action Webhook
+app.post('/api/order-status', async (req, res) => {
+    try {
+        const { orderId, order_id, email, txRef, tx_ref, status, action } = req.body;
+        const targetIdentifier = orderId || order_id || email || txRef || tx_ref;
+        const effectiveStatus = (status || action || '').toUpperCase();
+
+        if (effectiveStatus === 'APPROVED' || effectiveStatus === 'SUCCESS' || action === 'approve') {
+            if (targetIdentifier) {
+                await processOrderApproval(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.json({ success: true, status: 'APPROVED' });
+        } else if (effectiveStatus === 'REJECTED' || action === 'reject') {
+            if (targetIdentifier) {
+                await processOrderRejection(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.json({ success: true, status: 'REJECTED' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('/api/order-status error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/bot/order-action', async (req, res) => {
+    try {
+        const { orderId, order_id, email, txRef, tx_ref, action, status } = req.body;
+        const targetIdentifier = orderId || order_id || email || txRef || tx_ref;
+        const act = (action || status || '').toLowerCase();
+
+        if (act === 'approve' || act === 'approved' || act === 'success') {
+            if (targetIdentifier) {
+                await processOrderApproval(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.json({ success: true, action: 'approve' });
+        } else if (act === 'reject' || act === 'rejected') {
+            if (targetIdentifier) {
+                await processOrderRejection(targetIdentifier, 'WEBSITE_DASHBOARD', null);
+            }
+            return res.json({ success: true, action: 'reject' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error('/api/bot/order-action error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 4. API to Query Orders and System Status
+app.get('/api/orders', (req, res) => {
+    res.json({ success: true, orders: loadOrders() });
+});
+
+app.get('/api/users', (req, res) => {
+    res.json({ success: true, users: loadUsers() });
 });
 
 // -------------------------------------------------------------
@@ -598,8 +836,9 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
         });
     }
 
-    // Sync to Google Sheets
+    // Sync to Google Sheets & Notify Website Dashboard
     syncToGoogle('order_approved', order);
+    await notifyWebsiteApproval(order, licenseKey, adminId);
 
     // Update Admin UI
     let adminConfirmation = `✅ <b>Order ${orderId} Approved Successfully!</b>\n\n` +
@@ -612,13 +851,27 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
         adminConfirmation += `👥 <b>Referral Inviter:</b> <code>${inviterId}</code> (+150 ETB credited & notified)\n`;
     }
 
+    if (adminId === 'WEBSITE_DASHBOARD') {
+        adminConfirmation += `\n🌐 <i>Approved via Website Dashboard (ice-core.vercel.app)!</i>\n`;
+    }
+
     adminConfirmation += `\n<i>Student has received the License Key and website registration instructions on Telegram!</i>`;
 
-    await sendTelegram('sendMessage', {
-        chat_id: replyChatId,
-        text: adminConfirmation,
-        parse_mode: 'HTML'
-    });
+    if (replyChatId) {
+        await sendTelegram('sendMessage', {
+            chat_id: replyChatId,
+            text: adminConfirmation,
+            parse_mode: 'HTML'
+        });
+    } else {
+        for (const aId of ADMIN_IDS) {
+            await sendTelegram('sendMessage', {
+                chat_id: aId,
+                text: adminConfirmation,
+                parse_mode: 'HTML'
+            });
+        }
+    }
 }
 
 // 2. Process Order Rejection
@@ -633,6 +886,8 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
         const allOrders = Object.values(orders);
         order = allOrders.find(o => 
             (o.user_id && o.user_id.toString() === orderId) ||
+            (o.email && o.email.toLowerCase() === orderId.toLowerCase()) ||
+            (o.tx_ref && o.tx_ref.toLowerCase() === orderId.toLowerCase()) ||
             (o.order_id && o.order_id.toLowerCase().includes(orderId.toLowerCase()))
         );
         if (order) orderId = order.order_id;
@@ -644,11 +899,14 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
             order = pendingOrders[pendingOrders.length - 1];
             orderId = order.order_id;
         } else {
-            await sendTelegram('sendMessage', {
-                chat_id: replyChatId,
-                text: `❌ Order not found to reject: <code>${identifier || ''}</code>`,
-                parse_mode: 'HTML'
-            });
+            const notFoundMsg = `❌ Order not found to reject: <code>${identifier || ''}</code>`;
+            if (replyChatId) {
+                await sendTelegram('sendMessage', {
+                    chat_id: replyChatId,
+                    text: notFoundMsg,
+                    parse_mode: 'HTML'
+                });
+            }
             return;
         }
     }
@@ -658,6 +916,10 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
     order.rejected_by = adminId;
     orders[orderId] = order;
     saveOrders(orders);
+
+    // Sync to Google Sheets & Notify Website Dashboard
+    syncToGoogle('order_rejected', order);
+    await notifyWebsiteRejection(order, adminId);
 
     if (order.user_id && order.user_id !== 'WEBSITE') {
         await sendTelegram('sendMessage', {
@@ -669,11 +931,25 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
         });
     }
 
-    await sendTelegram('sendMessage', {
-        chat_id: replyChatId,
-        text: `❌ <b>Order ${orderId} has been rejected.</b>`,
-        parse_mode: 'HTML'
-    });
+    const rejectionAdminMsg = adminId === 'WEBSITE_DASHBOARD'
+        ? `❌ <b>Order ${orderId} has been rejected via Website Dashboard (ice-core.vercel.app).</b>`
+        : `❌ <b>Order ${orderId} has been rejected.</b>`;
+
+    if (replyChatId) {
+        await sendTelegram('sendMessage', {
+            chat_id: replyChatId,
+            text: rejectionAdminMsg,
+            parse_mode: 'HTML'
+        });
+    } else {
+        for (const aId of ADMIN_IDS) {
+            await sendTelegram('sendMessage', {
+                chat_id: aId,
+                text: rejectionAdminMsg,
+                parse_mode: 'HTML'
+            });
+        }
+    }
 }
 
 // 3. List Pending Orders
@@ -876,6 +1152,7 @@ async function handleMessage(msg) {
         orders[orderId] = orderData;
         saveOrders(orders);
         syncToGoogle('new_order', orderData);
+        syncOrderToWebsite(orderData);
 
         // Notify Admin(s) with photo and actionable inline buttons
         const adminCaption = `🧾 <b>New Payment Receipt Received (Direct Photo)!</b>\n\n` +
