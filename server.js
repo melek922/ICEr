@@ -1301,7 +1301,7 @@ async function handleMessage(msg) {
             `   └ <i>Daily video lectures + 1 Live session/week</i>\n\n` +
             `2️⃣ <b>30-Day Mastery Program (Recommended):</b> <code>6,000 ETB / $45</code>\n` +
             `   └ <i>Full Curriculum + Daily Challenges + Progress Tracking</i>\n\n` +
-            `3️⃣ <b>1-on-1 Mentorship:</b> <code>18,500 ETB / $100 / mo</code>\n` +
+            `3️⃣ <b>1-on-1 Mentorship:</b> <code>15,500 ETB / $100 / mo</code>\n` +
             `   └ <i>2x 45-min sessions/week + Daily Videos + Priority Q&A</i>\n\n` +
             `4️⃣ <b>Negadras Tier (50% Off):</b> <code>3,000 ETB</code>\n` +
             `   └ <i>Special 50% discount for Negadras Level 2 students</i>\n\n` +
