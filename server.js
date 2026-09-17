@@ -1804,21 +1804,39 @@ async function setupTelegram() {
 }
 
 // -------------------------------------------------------------
-// ⏰ ANTI-SLEEP HEARTBEAT (KEEPS RENDER INSTANCE AWAKE 24/7)
+// ⏰ ANTI-SLEEP HEARTBEAT & WEBHOOK AUTO-HEALER (24/7 LIVE)
 // -------------------------------------------------------------
-const PING_INTERVAL_MS = 8 * 60 * 1000; // Ping every 8 minutes (Render sleeps after 15 mins)
+const PING_INTERVAL_MS = 3 * 60 * 1000; // Check and ping every 3 minutes
 
 function startKeepAlivePing() {
-    const pingUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL || 'https://icer.onrender.com';
-    if (!pingUrl || !pingUrl.startsWith('https://')) return;
+    const pingUrl = (process.env.RENDER_EXTERNAL_URL || process.env.WEB_URL || WEB_URL || 'https://icer.onrender.com').replace(/\/$/, '');
+    const expectedWebhook = `${pingUrl}/api/telegram-webhook`;
 
-    console.log(`⏰ Anti-Sleep Keep-Alive activated for: ${pingUrl}`);
+    console.log(`⏰ Anti-Sleep & Webhook Auto-Healer activated for: ${pingUrl}`);
     setInterval(async () => {
         try {
+            // 1. Keep Render instance alive
             await axios.get(`${pingUrl}/api/config`, { timeout: 8000 });
             console.log(`💓 Keep-Alive Ping sent at ${new Date().toLocaleTimeString()}`);
         } catch (e) {
-            // Keep alive request pinged
+            // Ignore ping network glitches
+        }
+
+        try {
+            // 2. Auto-heal Telegram Webhook if hijacked or modified
+            if (BOT_TOKEN && pingUrl.startsWith('https://')) {
+                const infoRes = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`, { timeout: 6000 });
+                if (infoRes.data && infoRes.data.result && infoRes.data.result.url !== expectedWebhook) {
+                    console.warn(`⚠️ Webhook mismatch detected (${infoRes.data.result.url}). Auto-restoring to ${expectedWebhook}...`);
+                    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+                        url: expectedWebhook,
+                        drop_pending_updates: false
+                    });
+                    console.log(`✅ Webhook auto-restored to: ${expectedWebhook}`);
+                }
+            }
+        } catch (err) {
+            // Ignore webhook check errors
         }
     }, PING_INTERVAL_MS);
 }
