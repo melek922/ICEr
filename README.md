@@ -18,7 +18,7 @@
      - የተፈጠረውን ቁልፍ ከነ አጠቃቀሙ መመሪያ በቀጥታ ለተማሪው ቴሌግራም ላይ ይልክለታል።
      - ትዕዛዙን ወደ Google Sheets እና ዳታቤዝ ያዘምናል።
 
-3. 🌐 **ከዌብሳይቱ (`ice-core.vercel.app`) ጋር ውህደት**፦
+3. 🌐 **ከዌብሳይቱ (`ice-psychology.pro.et`) ጋር ውህደት**፦
    - በዌብሳይቱ ላይ ማንም ሰው ማኑዋል ክፍያ ሲፈጽም፣ ዌብሳይቱ ጥሪ በማድረግ ለአድሚኖቹ ቴሌግራም ላይ የክፍያ ማሳወቂያ ይልካል።
 
 4. 👥 **የሪፈራል እና የኮሚሽን ስርዓት (Referral & Payout System)**፦
@@ -50,7 +50,7 @@ BOT_TOKEN=8123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BOT_USERNAME=IceTradingBot
 ADMIN_IDS=123456789
 WEB_URL=https://your-bot-domain.onrender.com
-WEBSITE_URL=https://ice-core.vercel.app
+WEBSITE_URL=https://ice-psychology.pro.et
 TELEBIRR_NUMBER=0941550511
 TELEBIRR_NAME=ICE Trading Academy
 GOOGLE_SHEET_URL=https://script.google.com/macros/s/xxxx/exec
