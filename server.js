@@ -23,7 +23,7 @@ const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
 const TELEBIRR_NAME = process.env.TELEBIRR_NAME || 'Nathanael';
-const USDT_ADDRESS = process.env.USDT_TRC20_ADDRESS || 'Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+const USDT_ADDRESS = 'XXXXXXX';
 
 // ☁️ Cloudinary Configuration (Server-Side Protected)
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'rbkihpxg';
