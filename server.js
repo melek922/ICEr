@@ -18,7 +18,7 @@ app.use(express.static(__dirname));
 const BOT_TOKEN = process.env.BOT_TOKEN || '8897397930:AAG253KLBS1y-KXEqw5Xf6sSpv0Ylx0LxHY';
 const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => id.trim());
 const WEB_URL = process.env.WEB_URL || 'https://icer.onrender.com';
-const WEBSITE_URL = 'https://ice-psychology.pro.et';
+const WEBSITE_URL = process.env.WEBSITE_URL || 'https://www.icepsychology.com';
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
@@ -111,7 +111,7 @@ function generateLicenseKey() {
     return `ITP-${block()}-${block()}-${block()}`;
 }
 
-// 🌐 Sync & Get Valid License Key Directly from Website Database (ice-psychology.pro.et)
+// 🌐 Sync & Get Valid License Key Directly from Website Database (www.icepsychology.com)
 async function getWebsiteLicenseKey() {
     try {
         // 1. Try to fetch an available unassigned key directly from website pool
@@ -198,7 +198,7 @@ function syncToGoogle(action, payload) {
         .catch(e => console.error(`❌ Google Sheets Network Error (${action}):`, e.message));
 }
 
-// 🌐 Website Integration Helper: Sync Order to Website Dashboard (ice-psychology.pro.et)
+// 🌐 Website Integration Helper: Sync Order to Website Dashboard (www.icepsychology.com)
 async function syncOrderToWebsite(orderData) {
     if (!WEBSITE_URL) return;
     try {
@@ -381,7 +381,7 @@ app.post('/api/order', async (req, res) => {
         // Sync to Google Sheets
         syncToGoogle('new_order', orderData);
 
-        // Sync to Website Dashboard (ice-psychology.pro.et)
+        // Sync to Website Dashboard (www.icepsychology.com)
         syncOrderToWebsite(orderData);
 
         // 🔗 Generate Official Live Verification Link
@@ -565,7 +565,7 @@ app.post('/api/website-payment', async (req, res) => {
         saveOrders(orders);
         syncToGoogle('new_order', newOrderData);
 
-        const adminMsg = `🌐 <b>New Payment on Website (ice-psychology.pro.et)!</b>\n\n` +
+        const adminMsg = `🌐 <b>New Payment on Website (www.icepsychology.com)!</b>\n\n` +
             `📧 <b>Email:</b> <code>${email}</code>\n` +
             `💳 <b>Method:</b> ${method || paymentMethod || 'Telebirr/Crypto'}\n` +
             `🧾 <b>TxRef / Hash:</b> <code>${effectiveTxRef}</code>\n` +
@@ -852,7 +852,7 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
     }
 
     if (adminId === 'WEBSITE_DASHBOARD') {
-        adminConfirmation += `\n🌐 <i>Approved via Website Dashboard (ice-psychology.pro.et)!</i>\n`;
+        adminConfirmation += `\n🌐 <i>Approved via Website Dashboard (www.icepsychology.com)!</i>\n`;
     }
 
     adminConfirmation += `\n<i>Student has received the License Key and website registration instructions on Telegram!</i>`;
@@ -932,7 +932,7 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
     }
 
     const rejectionAdminMsg = adminId === 'WEBSITE_DASHBOARD'
-        ? `❌ <b>Order ${orderId} has been rejected via Website Dashboard (ice-psychology.pro.et).</b>`
+        ? `❌ <b>Order ${orderId} has been rejected via Website Dashboard (www.icepsychology.com).</b>`
         : `❌ <b>Order ${orderId} has been rejected.</b>`;
 
     if (replyChatId) {
@@ -1568,7 +1568,7 @@ async function handleMessage(msg) {
 
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `✅ <b>Website-Synced License Key Generated!</b>\n\n🔑 <b>Key:</b> <code>${key}</code>\n📧 <b>Assigned Email:</b> ${targetEmail}\n🌐 <i>Active and ready on https://ice-psychology.pro.et</i>`,
+                text: `✅ <b>Website-Synced License Key Generated!</b>\n\n🔑 <b>Key:</b> <code>${key}</code>\n📧 <b>Assigned Email:</b> ${targetEmail}\n🌐 <i>Active and ready on https://www.icepsychology.com</i>`,
                 parse_mode: 'HTML'
             });
             return;
