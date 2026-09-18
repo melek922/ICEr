@@ -25,7 +25,9 @@ const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
 const TELEBIRR_NAME = process.env.TELEBIRR_NAME || 'Nathanael';
 const USDT_ADDRESS = (process.env.USDT_BEP20_ADDRESS && process.env.USDT_BEP20_ADDRESS.startsWith('0x'))
     ? process.env.USDT_BEP20_ADDRESS
-    : '0x23930c96268269c169d3825e47b0538cfb77d2ff';
+    : (process.env.USDT_TRC20_ADDRESS && process.env.USDT_TRC20_ADDRESS.startsWith('0x')
+        ? process.env.USDT_TRC20_ADDRESS
+        : '0x23930c96268269c169d3825e47b0538cfb77d2ff');
 
 // ☁️ Cloudinary Configuration (Server-Side Protected)
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'rbkihpxg';
