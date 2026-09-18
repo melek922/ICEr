@@ -23,7 +23,7 @@ const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
 const TELEBIRR_NAME = process.env.TELEBIRR_NAME || 'Nathanael';
-const USDT_ADDRESS = 'XXXXXXX';
+const USDT_ADDRESS = process.env.USDT_BEP20_ADDRESS || process.env.USDT_TRC20_ADDRESS || '0x23930c96268269c169d3825e47b0538cfb77d2ff';
 
 // ☁️ Cloudinary Configuration (Server-Side Protected)
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'rbkihpxg';
@@ -312,6 +312,7 @@ app.get('/api/config', (req, res) => {
         website_url: WEBSITE_URL,
         payment_info: {
             telebirr: { number: TELEBIRR_NUMBER, name: TELEBIRR_NAME },
+            usdt_bep20: USDT_ADDRESS,
             usdt_trc20: USDT_ADDRESS
         }
     });
@@ -393,8 +394,8 @@ app.post('/api/order', async (req, res) => {
             verifyUrl = `https://transactioninfo.ethiotelecom.et/receipt/${encodeURIComponent(cleanTxRef)}`;
             verifyLabel = '🔍 Verify Telebirr Receipt (Ethio Telecom Live)';
         } else {
-            verifyUrl = `https://tronscan.org/#/transaction/${encodeURIComponent(cleanTxRef)}`;
-            verifyLabel = '🔍 Verify USDT on Tronscan (Blockchain Live)';
+            verifyUrl = `https://bscscan.com/tx/${encodeURIComponent(cleanTxRef)}`;
+            verifyLabel = '🔍 Verify USDT (BEP20) on BscScan (BSC Live)';
         }
 
         // 🔔 Notify Admins on Telegram with Instant Inline Action Buttons
