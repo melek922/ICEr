@@ -8,7 +8,7 @@
 
 1. 📱 **Telegram WebApp (ስልጠናውን የመመዝገቢያ ፎርም)**፦
    - ተማሪው በቴሌግራም ቦቱ ውስጥ ሆነው በቀጥታ ጥቅል ይመርጣል (Standard ወይም VIP)።
-   - የቴሌብር፣ የንግድ ባንክ (CBE) ወይም USDT (TRC20) የክፍያ መረጃዎችን ያገኛል።
+   - የቴሌብር ወይም USDT (BEP20) የክፍያ መረጃዎችን ያገኛል።
    - የከፈለበትን ደረሰኝ ፎቶ (Receipt Screenshot) እና መረጃዎችን ሞልቶ ይልካል።
 
 2. 👑 **የአድሚን ፈጣን ማጽደቂያ (Instant 1-Click Admin Approval)**፦
@@ -29,7 +29,7 @@
 
 5. 🔍 **የቀጥታ ደረሰኝ ማረጋገጫ (Live Transaction Verification)**፦
    - ለቴሌብር፦ የኢትዮ ቴሌኮም ኦፊሴላዊ ደረሰኝ ማረጋገጫ ሊንክ (`https://transactioninfo.ethiotelecom.et/receipt/<TxRef>`) በ 1-ክሊክ ይከፍታል።
-   - ለ USDT፦ የ Tronscan Blockchain Explorer የቀጥታ ማረጋገጫ ሊንክ በ 1-ክሊክ ይከፍታል።
+   - ለ USDT፦ የ BscScan (BSC Live) Explorer የቀጥታ ማረጋገጫ ሊንክ በ 1-ክሊክ ይከፍታል።
 
 6. 📊 **Google Sheets 2-Way Data Sync (ዳታ እንዳይጠፋ ጥበቃ)**፦
    - አገልጋዩ (Server) ቢጠፋ ወይም ሪስታርት ቢሆን እንኳን፣ ከGoogle Sheets ጋር ተመሳስሎ ስለሚሰራ ምንም አይነት የተማሪ ወይም የክፍያ መረጃ አይጠፋទេ។
