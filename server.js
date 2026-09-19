@@ -32,6 +32,12 @@ const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || 'ice_pr
 // 🔄 Admin Reply Tracker (Maps admin notification message_id -> target user_id)
 const adminMessageMap = {};
 
+function checkIsAdmin(id) {
+    if (!id) return false;
+    const cleanId = id.toString().trim();
+    return ADMIN_IDS.some(adminId => adminId && adminId.toString().trim() === cleanId);
+}
+
 function escapeHTML(str) {
     if (!str) return '';
     return String(str)
@@ -986,15 +992,19 @@ async function listPendingOrders(replyChatId) {
 // --- Callback Query Handler (Admin Approval & Actions) ---
 async function handleCallbackQuery(cq) {
     const data = cq.data || '';
-    const fromId = cq.from.id.toString();
-    const isAdmin = ADMIN_IDS.includes(fromId);
+    const fromId = cq.from ? cq.from.id.toString() : '';
+    const isAdmin = checkIsAdmin(fromId);
     const message = cq.message;
     const chatId = message ? message.chat.id : fromId;
 
     await sendTelegram('answerCallbackQuery', { callback_query_id: cq.id });
 
     if (!isAdmin) {
-        await sendTelegram('sendMessage', { chat_id: fromId, text: '❌ Unauthorized. Admin access required.' });
+        await sendTelegram('sendMessage', {
+            chat_id: fromId,
+            text: `⛔ <b>Admin Access Denied / የአድሚን ፈቃድ የለዎትም</b>\n\nYour Telegram User ID is: <code>${fromId}</code>\nAdd it to <b>ADMIN_IDS</b> in Render Environment Variables to grant access.`,
+            parse_mode: 'HTML'
+        });
         return;
     }
 
@@ -1031,7 +1041,7 @@ async function handleMessage(msg) {
     const text = msg.text || '';
     const caption = msg.caption || '';
     const userId = msg.from ? msg.from.id.toString() : chatId.toString();
-    const isAdmin = ADMIN_IDS.includes(userId);
+    const isAdmin = checkIsAdmin(userId);
 
     const users = loadUsers();
 
@@ -1064,21 +1074,68 @@ async function handleMessage(msg) {
     // -------------------------------------------------------------
     if (isAdmin && msg.reply_to_message) {
         const replyTargetMsg = msg.reply_to_message;
-        let targetUserId = adminMessageMap[replyTargetMsg.message_id];
+        const sourceContent = (replyTargetMsg.text || '') + ' ' + (replyTargetMsg.caption || '');
+        const lowerReplyText = (text || caption || '').toLowerCase().trim();
 
-        // Fallback: extract target user ID from text or caption of replied-to message
+        // 1. Extract Order ID or User ID from replied message
+        const orderMatch = sourceContent.match(/Order ID:\s*<code>?([A-Za-z0-9\-_]+)<\/code>?/i) ||
+                           sourceContent.match(/🔢\s*<b>Order ID:<\/b>\s*<code>?([A-Za-z0-9\-_]+)<\/code>?/i) ||
+                           sourceContent.match(/🔢\s*<code>?([A-Za-z0-9\-_]+)<\/code>?/) ||
+                           sourceContent.match(/\b(ORD-[A-Za-z0-9\-_]+)\b/i);
+
+        let targetUserId = adminMessageMap[replyTargetMsg.message_id];
         if (!targetUserId) {
-            const sourceContent = (replyTargetMsg.text || '') + ' ' + (replyTargetMsg.caption || '');
-            const match = sourceContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) ||
-                          sourceContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
-                          sourceContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
-                          sourceContent.match(/User ID:\s*(\d+)/i) ||
-                          sourceContent.match(/🆔\s*(\d+)/);
-            if (match && match[1]) {
-                targetUserId = match[1];
+            const userMatch = sourceContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) ||
+                              sourceContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
+                              sourceContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
+                              sourceContent.match(/User ID:\s*(\d+)/i) ||
+                              sourceContent.match(/🆔\s*(\d+)/);
+            if (userMatch && userMatch[1]) {
+                targetUserId = userMatch[1];
             }
         }
 
+        // Check if the reply is an APPROVE command
+        if (
+            lowerReplyText === 'approved' ||
+            lowerReplyText === 'approve' ||
+            lowerReplyText === '/approve' ||
+            lowerReplyText === '/approved' ||
+            lowerReplyText === 'accept' ||
+            lowerReplyText === '/accept' ||
+            lowerReplyText === 'ok' ||
+            lowerReplyText === 'yes' ||
+            lowerReplyText === '✅' ||
+            lowerReplyText.startsWith('/approve') ||
+            lowerReplyText.startsWith('/approved') ||
+            lowerReplyText.startsWith('approve') ||
+            lowerReplyText.startsWith('approved')
+        ) {
+            const identifier = (orderMatch && orderMatch[1]) ? orderMatch[1] : targetUserId;
+            await processOrderApproval(identifier, userId, chatId);
+            return;
+        }
+
+        // Check if the reply is a REJECT command
+        if (
+            lowerReplyText === 'rejected' ||
+            lowerReplyText === 'reject' ||
+            lowerReplyText === '/reject' ||
+            lowerReplyText === '/rejected' ||
+            lowerReplyText === 'no' ||
+            lowerReplyText === 'deny' ||
+            lowerReplyText === '❌' ||
+            lowerReplyText.startsWith('/reject') ||
+            lowerReplyText.startsWith('/rejected') ||
+            lowerReplyText.startsWith('reject') ||
+            lowerReplyText.startsWith('rejected')
+        ) {
+            const identifier = (orderMatch && orderMatch[1]) ? orderMatch[1] : targetUserId;
+            await processOrderRejection(identifier, userId, chatId);
+            return;
+        }
+
+        // Otherwise: Send as a direct chat message reply to the student
         if (targetUserId) {
             const replyContent = text || caption || '<i>(Attachment)</i>';
 
@@ -1471,19 +1528,35 @@ async function handleMessage(msg) {
     // -------------------------------------------------------------
     // 👑 ADMIN COMMANDS
     // -------------------------------------------------------------
-    if (isAdmin) {
-        const lowerText = text.toLowerCase().trim();
+    const lowerText = text.toLowerCase().trim();
+    const isApproveCmd = lowerText === 'approved' || lowerText === 'approve' || lowerText === '/approve' || lowerText === '/approved' || 
+                         lowerText.startsWith('/approve ') || lowerText.startsWith('/approved ') || 
+                         lowerText.startsWith('approve ') || lowerText.startsWith('approved ') || 
+                         lowerText === '✅ approve' || lowerText === 'accept' || lowerText.startsWith('/accept');
 
-        // 1. /approve or /approved <orderId / userId / email> or just /approve
-        if (lowerText.startsWith('/approve') || lowerText.startsWith('/approved')) {
+    const isRejectCmd = lowerText === 'rejected' || lowerText === 'reject' || lowerText === '/reject' || lowerText === '/rejected' || 
+                        lowerText.startsWith('/reject ') || lowerText.startsWith('/rejected ') || 
+                        lowerText.startsWith('reject ') || lowerText.startsWith('rejected ') || 
+                        lowerText === '❌ reject';
+
+    const isPendingCmd = lowerText === '/pending' || lowerText === '/orders' || 
+                         lowerText === 'pending' || lowerText === 'orders' || 
+                         lowerText === '📋 pending orders' || lowerText.startsWith('/pending') || lowerText.startsWith('/orders');
+
+    const isStatsCmd = lowerText === '/stats' || lowerText === 'stats' || lowerText === '📊 stats';
+    const isHelpCmd = lowerText === '/admin' || lowerText === '/adminhelp' || lowerText === '/help' || lowerText === 'admin';
+
+    if (isAdmin) {
+        // 1. Approve
+        if (isApproveCmd) {
             const parts = text.trim().split(/\s+/);
             const identifier = parts.length > 1 ? parts.slice(1).join(' ') : null;
             await processOrderApproval(identifier, userId, chatId);
             return;
         }
 
-        // 2. /reject or /rejected <orderId / userId>
-        if (lowerText.startsWith('/reject') || lowerText.startsWith('/rejected')) {
+        // 2. Reject
+        if (isRejectCmd) {
             const parts = text.trim().split(/\s+/);
             const identifier = parts.length > 1 ? parts.slice(1).join(' ') : null;
             await processOrderRejection(identifier, userId, chatId);
@@ -1491,17 +1564,17 @@ async function handleMessage(msg) {
         }
 
         // 3. /pending or /orders
-        if (lowerText === '/pending' || lowerText === '/orders') {
+        if (isPendingCmd) {
             await listPendingOrders(chatId);
             return;
         }
 
         // 4. /admin or /adminhelp or /help
-        if (lowerText === '/admin' || lowerText === '/adminhelp' || lowerText === '/help') {
+        if (isHelpCmd) {
             const helpMsg = `👑 <b>ICE Bot Admin Command Center / የአድሚን ትዕዛዞች</b>\n\n` +
                 `✅ <b>/approve [order_id / user_id / email]</b>\n` +
                 `└ <i>Approve order, sync license key with website DB, award inviter +150 ETB, and send credentials to student.</i>\n` +
-                `💡 <i>Tip: Typing <code>/approve</code> alone automatically approves the latest pending order!</i>\n\n` +
+                `💡 <i>Tip: Typing <code>/approve</code> or <code>approved</code> alone automatically approves the latest pending order!</i>\n\n` +
                 `❌ <b>/reject [order_id / user_id]</b>\n` +
                 `└ <i>Reject payment verification and notify student.</i>\n\n` +
                 `📋 <b>/pending</b> or <b>/orders</b>\n` +
@@ -1527,7 +1600,7 @@ async function handleMessage(msg) {
         }
 
         // 5. /stats
-        if (text === '/stats') {
+        if (isStatsCmd) {
             const allUsers = Object.keys(users);
             const enrolledUsers = allUsers.filter(uid => users[uid]?.has_purchased === true);
             const leadUsers = allUsers.filter(uid => !users[uid]?.has_purchased);
@@ -1669,6 +1742,15 @@ async function handleMessage(msg) {
             });
             return;
         }
+    } else if (isApproveCmd || isRejectCmd || isPendingCmd || isStatsCmd || isHelpCmd) {
+        await sendTelegram('sendMessage', {
+            chat_id: chatId,
+            text: `⛔ <b>Admin Access Required / የአድሚን ፈቃድ ያስፈልጋል</b>\n\n` +
+                  `Your Telegram User ID is: <code>${userId}</code>\n\n` +
+                  `To authorize this account, add <code>${userId}</code> to <b>ADMIN_IDS</b> in your Render Environment Variables.`,
+            parse_mode: 'HTML'
+        });
+        return;
     }
 
     // -------------------------------------------------------------
