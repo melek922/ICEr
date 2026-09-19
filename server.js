@@ -728,20 +728,16 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
     // Recover order details from message text/caption if not found in memory (e.g. after server restart)
     if (!order && sourceMsg) {
         const textContent = (sourceMsg.text || '') + ' ' + (sourceMsg.caption || '');
-        const userMatch = textContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) || 
-                          textContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
-                          textContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
-                          textContent.match(/User ID:\s*(\d+)/i) ||
-                          textContent.match(/🆔\s*(\d+)/);
-        const nameMatch = textContent.match(/Student:\s*<b>([^<]+)<\/b>/i) || 
-                          textContent.match(/👤\s*<b>Name:<\/b>\s*([^\n<]+)/i) || 
-                          textContent.match(/👤\s*<b>Student:<\/b>\s*([^\n<]+)/i);
-        const emailMatch = textContent.match(/Email:\s*<code>?([^<\s]+)<\/code>?/i) || 
-                           textContent.match(/📧\s*<code>?([^<\s]+)<\/code>?/);
-        const txRefMatch = textContent.match(/TxRef\s*\/?\s*Hash:\s*<code>?([^<\s]+)<\/code>?/i) || 
-                           textContent.match(/🧾\s*<code>?([^<\s]+)<\/code>?/);
-        const pkgMatch = textContent.match(/Package:\s*💎?\s*<b>([^<]+)<\/b>/i);
-        const priceMatch = textContent.match(/Amount:\s*<b>([^<]+)<\/b>/i);
+        const userMatch = textContent.match(/User ID:[^0-9]*(\d{5,15})/i) || 
+                          textContent.match(/🆔[^0-9]*(\d{5,15})/i);
+        const nameMatch = textContent.match(/(?:Student|Name):[^\w\n]*<b>?([^\n<]+)/i) || 
+                          textContent.match(/👤[^\w\n]*<b>?(?:Name|Student)?:?<\/b>?\s*([^\n<]+)/i);
+        const emailMatch = textContent.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        const txRefMatch = textContent.match(/(?:TxRef|Hash)[^<]*<code>?([^<\n\r]+)<\/code>?/i) || 
+                           textContent.match(/🧾[^<]*<code>?([^<\n\r]+)<\/code>?/i) ||
+                           textContent.match(/(?:Note \/ TxRef|Note):[^\w\n]*([^\n<]+)/i);
+        const pkgMatch = textContent.match(/Package:[^\w\n]*💎?\s*<b>?([^<\n]+)/i);
+        const priceMatch = textContent.match(/Amount:[^\w\n]*<b>?([^<\n]+)/i);
 
         if (userMatch || emailMatch || identifier) {
             orderId = identifier || `ORD-${Date.now()}`;
@@ -752,7 +748,7 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
                 email: emailMatch ? emailMatch[1].trim() : 'N/A',
                 telegram_username: '',
                 package_type: pkgMatch ? pkgMatch[1].trim() : 'ICE 35-Day Mastery',
-                price: priceMatch ? priceMatch[1].trim() : '5,999 ETB',
+                price: priceMatch ? priceMatch[1].trim() : '6,000 ETB',
                 payment_method: 'TELEBIRR / WEBAPP',
                 tx_ref: txRefMatch ? txRefMatch[1].trim() : 'N/A',
                 status: 'PENDING',
@@ -782,6 +778,17 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
     }
 
     if (order.status === 'APPROVED') {
+        if (sourceMsg && sourceMsg.message_id) {
+            sendTelegram('editMessageReplyMarkup', {
+                chat_id: replyChatId,
+                message_id: sourceMsg.message_id,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '✅ APPROVED & LICENSE SENT', callback_data: 'none' }]
+                    ]
+                }
+            }).catch(() => {});
+        }
         await sendTelegram('sendMessage', {
             chat_id: replyChatId,
             text: `⚠️ Order <b>${orderId}</b> was already approved!\n🔑 <b>Existing License:</b> <code>${order.license_key}</code>`,
@@ -894,6 +901,18 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
 
     adminConfirmation += `\n<i>Student has received the License Key and website registration instructions on Telegram!</i>`;
 
+    if (sourceMsg && sourceMsg.message_id) {
+        sendTelegram('editMessageReplyMarkup', {
+            chat_id: replyChatId,
+            message_id: sourceMsg.message_id,
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '✅ APPROVED & LICENSE SENT', callback_data: 'none' }]
+                ]
+            }
+        }).catch(() => {});
+    }
+
     if (replyChatId) {
         await sendTelegram('sendMessage', {
             chat_id: replyChatId,
@@ -932,13 +951,11 @@ async function processOrderRejection(identifier, adminId, replyChatId, sourceMsg
 
     if (!order && sourceMsg) {
         const textContent = (sourceMsg.text || '') + ' ' + (sourceMsg.caption || '');
-        const userMatch = textContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) || 
-                          textContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
-                          textContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
-                          textContent.match(/User ID:\s*(\d+)/i) ||
-                          textContent.match(/🆔\s*(\d+)/);
-        const txRefMatch = textContent.match(/TxRef\s*\/?\s*Hash:\s*<code>?([^<\s]+)<\/code>?/i) || 
-                           textContent.match(/🧾\s*<code>?([^<\s]+)<\/code>?/);
+        const userMatch = textContent.match(/User ID:[^0-9]*(\d{5,15})/i) || 
+                          textContent.match(/🆔[^0-9]*(\d{5,15})/i);
+        const txRefMatch = textContent.match(/(?:TxRef|Hash)[^<]*<code>?([^<\n\r]+)<\/code>?/i) || 
+                           textContent.match(/🧾[^<]*<code>?([^<\n\r]+)<\/code>?/i) ||
+                           textContent.match(/(?:Note \/ TxRef|Note):[^\w\n]*([^\n<]+)/i);
 
         if (userMatch || identifier) {
             orderId = identifier || `ORD-${Date.now()}`;
@@ -1945,6 +1962,7 @@ async function setupTelegram() {
             console.log(`🌐 Setting Telegram Webhook to: ${webhookEndpoint}...`);
             const setRes = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
                 url: webhookEndpoint,
+                allowed_updates: ['message', 'edited_message', 'callback_query', 'channel_post', 'edited_channel_post', 'inline_query'],
                 drop_pending_updates: false
             });
             if (setRes.data && setRes.data.ok) {
@@ -1983,10 +2001,11 @@ function startKeepAlivePing() {
             // 2. Auto-heal Telegram Webhook if hijacked or modified
             if (BOT_TOKEN && pingUrl.startsWith('https://')) {
                 const infoRes = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`, { timeout: 6000 });
-                if (infoRes.data && infoRes.data.result && infoRes.data.result.url !== expectedWebhook) {
-                    console.warn(`⚠️ Webhook mismatch detected (${infoRes.data.result.url}). Auto-restoring to ${expectedWebhook}...`);
+                if (infoRes.data && infoRes.data.result && (infoRes.data.result.url !== expectedWebhook || !infoRes.data.result.allowed_updates || !infoRes.data.result.allowed_updates.includes('callback_query'))) {
+                    console.warn(`⚠️ Webhook mismatch or missing callback_query detected. Auto-restoring to ${expectedWebhook}...`);
                     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
                         url: expectedWebhook,
+                        allowed_updates: ['message', 'edited_message', 'callback_query', 'channel_post', 'edited_channel_post', 'inline_query'],
                         drop_pending_updates: false
                     });
                     console.log(`✅ Webhook auto-restored to: ${expectedWebhook}`);
