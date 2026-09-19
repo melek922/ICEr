@@ -704,7 +704,7 @@ app.post('/api/telegram-webhook', async (req, res) => {
 // -------------------------------------------------------------
 
 // 1. Process Order Approval (Used by inline buttons and /approve /approved commands)
-async function processOrderApproval(identifier, adminId, replyChatId) {
+async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg = null) {
     const orders = loadOrders();
     let orderId = identifier ? identifier.trim() : null;
     let order = null;
@@ -725,25 +725,56 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
         }
     }
 
-    // If no identifier provided, pick the latest pending order
+    // Recover order details from message text/caption if not found in memory (e.g. after server restart)
+    if (!order && sourceMsg) {
+        const textContent = (sourceMsg.text || '') + ' ' + (sourceMsg.caption || '');
+        const userMatch = textContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) || 
+                          textContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
+                          textContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
+                          textContent.match(/User ID:\s*(\d+)/i) ||
+                          textContent.match(/🆔\s*(\d+)/);
+        const nameMatch = textContent.match(/Student:\s*<b>([^<]+)<\/b>/i) || 
+                          textContent.match(/👤\s*<b>Name:<\/b>\s*([^\n<]+)/i) || 
+                          textContent.match(/👤\s*<b>Student:<\/b>\s*([^\n<]+)/i);
+        const emailMatch = textContent.match(/Email:\s*<code>?([^<\s]+)<\/code>?/i) || 
+                           textContent.match(/📧\s*<code>?([^<\s]+)<\/code>?/);
+        const txRefMatch = textContent.match(/TxRef\s*\/?\s*Hash:\s*<code>?([^<\s]+)<\/code>?/i) || 
+                           textContent.match(/🧾\s*<code>?([^<\s]+)<\/code>?/);
+        const pkgMatch = textContent.match(/Package:\s*💎?\s*<b>([^<]+)<\/b>/i);
+        const priceMatch = textContent.match(/Amount:\s*<b>([^<]+)<\/b>/i);
+
+        if (userMatch || emailMatch || identifier) {
+            orderId = identifier || `ORD-${Date.now()}`;
+            order = {
+                order_id: orderId,
+                user_id: userMatch ? userMatch[1] : 'WEBSITE',
+                name: nameMatch ? nameMatch[1].trim() : 'Student',
+                email: emailMatch ? emailMatch[1].trim() : 'N/A',
+                telegram_username: '',
+                package_type: pkgMatch ? pkgMatch[1].trim() : 'ICE 35-Day Mastery',
+                price: priceMatch ? priceMatch[1].trim() : '5,999 ETB',
+                payment_method: 'TELEBIRR / WEBAPP',
+                tx_ref: txRefMatch ? txRefMatch[1].trim() : 'N/A',
+                status: 'PENDING',
+                created_at: new Date().toISOString()
+            };
+            orders[orderId] = order;
+            saveOrders(orders);
+        }
+    }
+
+    // If no identifier provided or matching, pick latest pending order
     if (!order) {
         const pendingOrders = Object.values(orders).filter(o => o.status === 'PENDING');
-        if (pendingOrders.length === 0) {
-            await sendTelegram('sendMessage', {
-                chat_id: replyChatId,
-                text: '⚠️ <b>No pending orders found to approve.</b>\nለማጽደቅ ምንም በመጠባበቅ ላይ ያለ ትዕዛዝ የለም።',
-                parse_mode: 'HTML'
-            });
-            return;
-        }
-
-        if (!orderId) {
+        if (pendingOrders.length > 0) {
             order = pendingOrders[pendingOrders.length - 1];
             orderId = order.order_id;
         } else {
             await sendTelegram('sendMessage', {
                 chat_id: replyChatId,
-                text: `❌ <b>Order not found matching:</b> <code>${identifier}</code>\n\nUse <code>/pending</code> to list pending orders.`,
+                text: identifier 
+                    ? `❌ <b>Order not found matching:</b> <code>${identifier}</code>\n\nUse <code>/pending</code> to list pending orders.`
+                    : '⚠️ <b>No pending orders found to approve.</b>\nለማጽደቅ ምንም በመጠባበቅ ላይ ያለ ትዕዛዝ የለም።',
                 parse_mode: 'HTML'
             });
             return;
@@ -881,7 +912,7 @@ async function processOrderApproval(identifier, adminId, replyChatId) {
 }
 
 // 2. Process Order Rejection
-async function processOrderRejection(identifier, adminId, replyChatId) {
+async function processOrderRejection(identifier, adminId, replyChatId, sourceMsg = null) {
     const orders = loadOrders();
     let orderId = identifier ? identifier.trim() : null;
     let order = null;
@@ -899,9 +930,35 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
         if (order) orderId = order.order_id;
     }
 
+    if (!order && sourceMsg) {
+        const textContent = (sourceMsg.text || '') + ' ' + (sourceMsg.caption || '');
+        const userMatch = textContent.match(/User ID:\s*<code>?(\d+)<\/code>?/i) || 
+                          textContent.match(/🆔\s*<b>User ID:<\/b>\s*<code>?(\d+)<\/code>?/i) ||
+                          textContent.match(/🆔\s*<code>?(\d+)<\/code>?/) ||
+                          textContent.match(/User ID:\s*(\d+)/i) ||
+                          textContent.match(/🆔\s*(\d+)/);
+        const txRefMatch = textContent.match(/TxRef\s*\/?\s*Hash:\s*<code>?([^<\s]+)<\/code>?/i) || 
+                           textContent.match(/🧾\s*<code>?([^<\s]+)<\/code>?/);
+
+        if (userMatch || identifier) {
+            orderId = identifier || `ORD-${Date.now()}`;
+            order = {
+                order_id: orderId,
+                user_id: userMatch ? userMatch[1] : 'WEBSITE',
+                name: 'Student',
+                email: 'N/A',
+                tx_ref: txRefMatch ? txRefMatch[1].trim() : 'N/A',
+                status: 'PENDING',
+                created_at: new Date().toISOString()
+            };
+            orders[orderId] = order;
+            saveOrders(orders);
+        }
+    }
+
     if (!order) {
         const pendingOrders = Object.values(orders).filter(o => o.status === 'PENDING');
-        if (!orderId && pendingOrders.length > 0) {
+        if (pendingOrders.length > 0) {
             order = pendingOrders[pendingOrders.length - 1];
             orderId = order.order_id;
         } else {
@@ -940,6 +997,18 @@ async function processOrderRejection(identifier, adminId, replyChatId) {
     const rejectionAdminMsg = adminId === 'WEBSITE_DASHBOARD'
         ? `❌ <b>Order ${orderId} has been rejected via Website Dashboard (www.icepsychology.com).</b>`
         : `❌ <b>Order ${orderId} has been rejected.</b>`;
+
+    if (sourceMsg && sourceMsg.message_id) {
+        sendTelegram('editMessageReplyMarkup', {
+            chat_id: replyChatId,
+            message_id: sourceMsg.message_id,
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '❌ REJECTED', callback_data: 'none' }]
+                ]
+            }
+        }).catch(() => {});
+    }
 
     if (replyChatId) {
         await sendTelegram('sendMessage', {
@@ -992,14 +1061,18 @@ async function listPendingOrders(replyChatId) {
 // --- Callback Query Handler (Admin Approval & Actions) ---
 async function handleCallbackQuery(cq) {
     const data = cq.data || '';
+    if (data === 'none') {
+        await sendTelegram('answerCallbackQuery', { callback_query_id: cq.id, text: 'ℹ️ Order already processed.' });
+        return;
+    }
+
     const fromId = cq.from ? cq.from.id.toString() : '';
     const isAdmin = checkIsAdmin(fromId);
     const message = cq.message;
     const chatId = message ? message.chat.id : fromId;
 
-    await sendTelegram('answerCallbackQuery', { callback_query_id: cq.id });
-
     if (!isAdmin) {
+        await sendTelegram('answerCallbackQuery', { callback_query_id: cq.id, text: '⛔ Admin access required.' });
         await sendTelegram('sendMessage', {
             chat_id: fromId,
             text: `⛔ <b>Admin Access Denied / የአድሚን ፈቃድ የለዎትም</b>\n\nYour Telegram User ID is: <code>${fromId}</code>\nAdd it to <b>ADMIN_IDS</b> in Render Environment Variables to grant access.`,
@@ -1008,16 +1081,18 @@ async function handleCallbackQuery(cq) {
         return;
     }
 
+    await sendTelegram('answerCallbackQuery', { callback_query_id: cq.id, text: '⚡ Processing...' });
+
     // 1. Approve Order
     if (data.startsWith('approve_')) {
         const orderId = data.replace('approve_', '');
-        await processOrderApproval(orderId, fromId, chatId);
+        await processOrderApproval(orderId, fromId, chatId, message);
     }
 
     // 2. Reject Order
     else if (data.startsWith('reject_')) {
         const orderId = data.replace('reject_', '');
-        await processOrderRejection(orderId, fromId, chatId);
+        await processOrderRejection(orderId, fromId, chatId, message);
     }
 
     // 3. Reply Prompt for Admin
