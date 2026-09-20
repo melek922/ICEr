@@ -219,8 +219,8 @@ async function syncOrderToWebsite(orderData) {
             telegramUsername: orderData.telegram_username || 'N/A',
             package: orderData.package_type || 'ICE 35-Day Mastery',
             tier: orderData.package_type || 'ICE 35-Day Mastery',
-            price: orderData.price || '5,999 ETB',
-            amount: orderData.price || '5,999 ETB',
+            price: orderData.price || '1,999 ETB',
+            amount: orderData.price || '1,999 ETB',
             method: orderData.payment_method || 'TELEGRAM_MANUAL',
             paymentMethod: orderData.payment_method || 'TELEGRAM_MANUAL',
             txRef: orderData.tx_ref || 'N/A',
@@ -360,7 +360,7 @@ app.post('/api/order', async (req, res) => {
             student_id: student_id || 'N/A',
             broker_wallet_id: broker_wallet_id || 'N/A',
             package_type: package_type || 'ICE 35-Day Mastery',
-            price: price || '5,999 ETB',
+            price: price || '1,999 ETB',
             payment_method: payment_method || 'TELEBIRR',
             receipt_url: finalReceiptUrl,
             tx_ref: tx_ref || 'N/A',
@@ -558,7 +558,7 @@ app.post('/api/website-payment', async (req, res) => {
             telegram_username: 'N/A',
             broker_wallet_id: 'N/A',
             package_type: 'ICE 35-Day Mastery (Website)',
-            price: amount || price || '5,999 ETB',
+            price: amount || price || '1,999 ETB',
             payment_method: method || paymentMethod || 'TELEBIRR / WEBSITE',
             receipt_url: '',
             tx_ref: effectiveTxRef,
@@ -748,7 +748,7 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
                 email: emailMatch ? emailMatch[1].trim() : 'N/A',
                 telegram_username: '',
                 package_type: pkgMatch ? pkgMatch[1].trim() : 'ICE 35-Day Mastery',
-                price: priceMatch ? priceMatch[1].trim() : '6,000 ETB',
+                price: priceMatch ? priceMatch[1].trim() : '1,999 ETB',
                 payment_method: 'TELEBIRR / WEBAPP',
                 tx_ref: txRefMatch ? txRefMatch[1].trim() : 'N/A',
                 status: 'PENDING',
@@ -1291,7 +1291,7 @@ async function handleMessage(msg) {
             telegram_username: username,
             broker_wallet_id: 'N/A',
             package_type: 'ICE 35-Day Mastery (Direct Photo)',
-            price: '5,999 ETB',
+            price: '1,999 ETB',
             payment_method: 'TELEBIRR / DIRECT PHOTO',
             receipt_url: receiptUrl,
             tx_ref: userCaption || 'Telegram Photo Upload',
@@ -1308,7 +1308,7 @@ async function handleMessage(msg) {
             `👤 <b>Student:</b> ${escapeHTML(studentName)} (@${username})\n` +
             `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
             `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
-            `💰 <b>Amount:</b> 6,000 ETB (or $45 USDT)\n` +
+            `💰 <b>Amount:</b> 1,999 ETB (or $15 USDT - 70% Off)\n` +
             `📝 <b>Note / TxRef:</b> ${escapeHTML(userCaption) || '<i>(No caption provided)</i>'}\n` +
             `⏰ <b>Date:</b> ${new Date().toLocaleString()}\n\n` +
             `────────────────────\n` +
@@ -1448,7 +1448,7 @@ async function handleMessage(msg) {
             `🌟 <b>Choose Your Path / የስልጠና አማራጮች፦</b>\n` +
             `1️⃣ <b>Telegram Group:</b> <code>1,000 ETB / $5 / mo</code>\n` +
             `   └ <i>Daily video lectures + 1 Live session/week</i>\n\n` +
-            `2️⃣ <b>30-Day Mastery Program (Recommended):</b> <code>6,000 ETB / $45</code>\n` +
+            `2️⃣ <b>30-Day Mastery Program (70% Off):</b> <code>1,999 ETB / $15</code> <i>(Was ~6,000 ETB~)</i>\n` +
             `   └ <i>Full Curriculum + Daily Challenges + Progress Tracking</i>\n\n` +
             `3️⃣ <b>1-on-1 Mentorship:</b> <code>20,000 ETB / $100 / mo</code>\n` +
             `   └ <i>2x 45-min sessions/week + Daily Videos + Priority Q&A</i>\n\n` +
