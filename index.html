@@ -126,10 +126,10 @@
                     </div>
                 </div>
 
-                <!-- 2. 30-Day Mastery Program (RECOMMENDED) -->
+                <!-- 2. 30-Day Mastery Program (RECOMMENDED / 70% OFF) -->
                 <div onclick="selectPackage('mastery_30day')" id="card_mastery_30day" class="package-card pkg-active relative rounded-xl border-2 border-cyan-400 bg-[#0e1a2f] p-3.5 cursor-pointer transition-all active:scale-[0.99] flex flex-col justify-between">
-                    <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-cyan-400 text-[9px] font-black tracking-wider text-slate-950 uppercase shadow-sm">
-                        Recommended
+                    <div class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-[9px] font-black tracking-wider text-white uppercase shadow-md flex items-center gap-1">
+                        <span>🔥 70% OFF</span>
                     </div>
                     <div>
                         <div class="flex items-center justify-between">
@@ -140,9 +140,13 @@
                                 <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
                             </div>
                         </div>
-                        <div class="mt-2">
-                            <span class="text-base font-black text-white font-mono" id="display_price_mastery_30day">6,000 ETB</span>
-                            <span class="text-[10px] text-slate-400" id="sub_price_mastery_30day">/ month</span>
+                        <div class="mt-2 flex items-baseline gap-2">
+                            <span class="text-xs text-rose-400/80 line-through font-mono">6,000 ETB</span>
+                            <span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[9px] font-bold border border-rose-500/30">Save 70%</span>
+                        </div>
+                        <div class="mt-0.5">
+                            <span class="text-base font-black text-cyan-300 font-mono" id="display_price_mastery_30day">1,999 ETB</span>
+                            <span class="text-[10px] text-slate-400" id="sub_price_mastery_30day">($15 / Deposit)</span>
                         </div>
                         <ul class="mt-2.5 space-y-1 text-[11px] text-slate-300">
                             <li class="flex items-center gap-1.5">
@@ -435,12 +439,12 @@
             },
             mastery_30day: {
                 id: 'mastery_30day',
-                titleEn: '30-Day Mastery Program',
-                titleAm: 'የ 30-ቀናት ማስተሪ ፕሮግራም (Mastery Program)',
-                baseTB: 6000,
-                baseUSDT: 45,
-                subPriceEn: '/ month',
-                subPriceAm: '/ በወር'
+                titleEn: '30-Day Mastery Program (70% Off)',
+                titleAm: 'የ 30-ቀናት ማስተሪ ፕሮግራም (70% ቅናሽ)',
+                baseTB: 1999,
+                baseUSDT: 15,
+                subPriceEn: '(70% Off / $15)',
+                subPriceAm: '(70% ቅናሽ / $15)'
             },
             mentorship_1on1: {
                 id: 'mentorship_1on1',
