@@ -181,6 +181,7 @@ async function getWebsiteLicenseKey(orderData = {}) {
             orderId: orderData.order_id || `ORD-${Date.now()}`,
             txRef: orderData.tx_ref || 'N/A',
             package: orderData.package_type || '30-Day Mastery Program',
+            tier: orderData.package_type || '30-Day Mastery Program',
             amount: cleanAmount,
             telegramUserId: String(orderData.user_id || '')
         };
