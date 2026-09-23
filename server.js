@@ -1308,7 +1308,7 @@ async function handleMessage(msg) {
             `👤 <b>Student:</b> ${escapeHTML(studentName)} (@${username})\n` +
             `🆔 <b>User ID:</b> <code>${userId}</code>\n` +
             `🔢 <b>Order ID:</b> <code>${orderId}</code>\n` +
-            `💰 <b>Amount:</b> 1,999 ETB (or $15 USDT - 70% Off)\n` +
+            `💰 <b>Amount:</b> 1,999 ETB (or $10 USDT - 70% Off)\n` +
             `📝 <b>Note / TxRef:</b> ${escapeHTML(userCaption) || '<i>(No caption provided)</i>'}\n` +
             `⏰ <b>Date:</b> ${new Date().toLocaleString()}\n\n` +
             `────────────────────\n` +
@@ -1448,11 +1448,11 @@ async function handleMessage(msg) {
             `🌟 <b>Choose Your Path / የስልጠና አማራጮች፦</b>\n` +
             `1️⃣ <b>Telegram Group:</b> <code>1,000 ETB / $5 / mo</code>\n` +
             `   └ <i>Daily video lectures + 1 Live session/week</i>\n\n` +
-            `2️⃣ <b>30-Day Mastery Program (70% Off):</b> <code>1,999 ETB / $15</code> <i>(Was ~6,000 ETB~)</i>\n` +
+            `2️⃣ <b>30-Day Mastery Program (70% Off):</b> <code>1,999 ETB / $10</code> <i>(Was ~6,000 ETB~)</i>\n` +
             `   └ <i>Full Curriculum + Daily Challenges + Progress Tracking</i>\n\n` +
             `3️⃣ <b>1-on-1 Mentorship:</b> <code>20,000 ETB / $100 / mo</code>\n` +
             `   └ <i>2x 45-min sessions/week + Daily Videos + Priority Q&A</i>\n\n` +
-            `4️⃣ <b>Negadras Tier (50% Off):</b> <code>3,000 ETB</code>\n` +
+            `4️⃣ <b>Negadras Tier (50% Off):</b> <code>3,000 ETB / $15</code>\n` +
             `   └ <i>Special 50% discount for Negadras Level 2 students</i>\n\n` +
             `🎁 <b>Broker Partner Discount:</b> <i>Get 30% OFF if you register with our partner broker link!</i>\n\n` +
             `👇 <b>Tap "💎 Enroll / Verify Payment" below to select your package, or send your payment screenshot directly here:</b>`;
