@@ -20,7 +20,8 @@ const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => i
 const WEB_URL = process.env.WEB_URL || 'https://icer.onrender.com';
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://www.icepsychology.com';
 const WEBSITE_API_URL = process.env.WEBSITE_API_URL || 'https://www.icepsychology.com/api/bot/issue-license';
-const BOT_INTERNAL_SECRET = process.env.BOT_INTERNAL_SECRET || 'ice-secret-2024';
+const BOT_SECRET = process.env.BOT_SECRET || process.env.BOT_INTERNAL_SECRET || 'ice-secret-2024';
+const BOT_INTERNAL_SECRET = BOT_SECRET;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
@@ -169,22 +170,25 @@ async function getWebsiteLicenseKey(orderData = {}) {
     // 1. Primary: Call Official Website issue-license API (provided by website developer)
     try {
         console.log(`🌐 Calling official website issue-license API (${WEBSITE_API_URL})...`);
+        const cleanAmount = typeof orderData.price === 'number' 
+            ? orderData.price 
+            : (parseInt(String(orderData.price || '1999').replace(/[^0-9]/g, '')) || 1999);
+
         const studentPayload = {
             email: orderData.email && !orderData.email.toLowerCase().includes('telegram') ? orderData.email : (orderData.phone ? `${orderData.phone}@student.ice` : 'student@icepsychology.com'),
             fullName: orderData.name || 'Student',
             phone: orderData.phone || 'N/A',
             orderId: orderData.order_id || `ORD-${Date.now()}`,
             txRef: orderData.tx_ref || 'N/A',
-            package: orderData.package_type || 'ICE 35-Day Mastery',
-            amount: orderData.price || '1,999 ETB',
-            telegramUserId: orderData.user_id ? orderData.user_id.toString() : '',
-            telegramChatId: orderData.user_id ? orderData.user_id.toString() : ''
+            package: orderData.package_type || '30-Day Mastery Program',
+            amount: cleanAmount,
+            telegramUserId: String(orderData.user_id || '')
         };
 
         const res = await axios.post(WEBSITE_API_URL, studentPayload, {
             headers: {
                 'Content-Type': 'application/json',
-                'x-bot-secret': BOT_INTERNAL_SECRET
+                'x-bot-secret': BOT_SECRET
             },
             timeout: 8000
         });
