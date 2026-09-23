@@ -19,6 +19,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '8897397930:AAG253KLBS1y-KXEqw5Xf6sSp
 const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => id.trim());
 const WEB_URL = process.env.WEB_URL || 'https://icer.onrender.com';
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://www.icepsychology.com';
+const WEBSITE_API_URL = process.env.WEBSITE_API_URL || 'https://www.icepsychology.com/api/bot/issue-license';
+const BOT_INTERNAL_SECRET = process.env.BOT_INTERNAL_SECRET || 'ice-secret-2024';
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
 const TELEBIRR_NUMBER = process.env.TELEBIRR_NUMBER || '0941550511';
@@ -104,6 +106,51 @@ function saveOrders(orders) { saveJSON(ORDERS_FILE, orders); }
 function loadLicenses() { return loadJSON(LICENSES_FILE); }
 function saveLicenses(licenses) { saveJSON(LICENSES_FILE, licenses); }
 
+// 🔑 License Pool Management Helpers
+function addLicenseKeysToPool(keys) {
+    if (!Array.isArray(keys)) return { added: 0, total: 0 };
+    const licenses = loadLicenses();
+    let addedCount = 0;
+    const now = new Date().toISOString();
+
+    keys.forEach(rawKey => {
+        if (!rawKey) return;
+        const cleanKey = String(rawKey).trim().toUpperCase();
+        if (cleanKey && cleanKey.length >= 6) {
+            if (!licenses[cleanKey]) {
+                licenses[cleanKey] = {
+                    key: cleanKey,
+                    status: 'available',
+                    order_id: null,
+                    user_id: null,
+                    email: null,
+                    created_at: now
+                };
+                addedCount++;
+            }
+        }
+    });
+
+    saveLicenses(licenses);
+    syncToGoogle('add_license_keys', { keys: Object.keys(licenses).filter(k => licenses[k].status === 'available') });
+    
+    const totalAvailable = Object.values(licenses).filter(l => l.status === 'available' && !l.order_id).length;
+    return { added: addedCount, total: totalAvailable };
+}
+
+function getLicensePoolStats() {
+    const licenses = loadLicenses();
+    const all = Object.values(licenses);
+    const available = all.filter(l => l.status === 'available' && !l.order_id);
+    const used = all.filter(l => l.status === 'used' || l.order_id);
+    return {
+        total: all.length,
+        availableCount: available.length,
+        usedCount: used.length,
+        availableKeys: available.map(l => l.key || l)
+    };
+}
+
 // 🔑 Generate Unique License Key (Format: ITP-XXXXX-XXXXX-XXXXX)
 function generateLicenseKey() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -118,9 +165,59 @@ function generateLicenseKey() {
 }
 
 // 🌐 Sync & Get Valid License Key Directly from Website Database (www.icepsychology.com)
-async function getWebsiteLicenseKey() {
+async function getWebsiteLicenseKey(orderData = {}) {
+    // 1. Primary: Call Official Website issue-license API (provided by website developer)
     try {
-        // 1. Try to fetch an available unassigned key directly from website pool
+        console.log(`🌐 Calling official website issue-license API (${WEBSITE_API_URL})...`);
+        const studentPayload = {
+            email: orderData.email && !orderData.email.toLowerCase().includes('telegram') ? orderData.email : (orderData.phone ? `${orderData.phone}@student.ice` : 'student@icepsychology.com'),
+            fullName: orderData.name || 'Student',
+            phone: orderData.phone || 'N/A',
+            orderId: orderData.order_id || `ORD-${Date.now()}`,
+            txRef: orderData.tx_ref || 'N/A',
+            package: orderData.package_type || 'ICE 35-Day Mastery',
+            amount: orderData.price || '1,999 ETB',
+            telegramUserId: orderData.user_id ? orderData.user_id.toString() : '',
+            telegramChatId: orderData.user_id ? orderData.user_id.toString() : ''
+        };
+
+        const res = await axios.post(WEBSITE_API_URL, studentPayload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-bot-secret': BOT_INTERNAL_SECRET
+            },
+            timeout: 8000
+        });
+
+        if (res.data && (res.data.licenseKey || res.data.key || res.data.license)) {
+            const key = res.data.licenseKey || res.data.key || res.data.license;
+            console.log('✅ Acquired official license key from website issue-license API:', key);
+            return key;
+        }
+        if (res.data && res.data.success && typeof res.data.data === 'string') {
+            return res.data.data;
+        }
+    } catch (err) {
+        console.warn('⚠️ Website issue-license API notice:', err.response ? err.response.data : err.message);
+    }
+
+    // 2. Secondary: Pre-generated / imported License Pool in bot & Google Sheets
+    const licenses = loadLicenses();
+    const availableKey = Object.keys(licenses).find(k => licenses[k] && licenses[k].status === 'available' && !licenses[k].order_id);
+    if (availableKey) {
+        console.log('✅ Acquired license key from pre-generated pool:', availableKey);
+        licenses[availableKey].status = 'used';
+        licenses[availableKey].order_id = orderData.order_id || '';
+        licenses[availableKey].user_id = orderData.user_id || '';
+        licenses[availableKey].email = orderData.email || '';
+        licenses[availableKey].assigned_at = new Date().toISOString();
+        saveLicenses(licenses);
+        syncToGoogle('use_license_key', { key: availableKey, ...orderData });
+        return availableKey;
+    }
+
+    // 3. Fallback: Old website license list endpoint
+    try {
         const listRes = await axios.get(`${WEBSITE_URL}/api/license`, { timeout: 4000 });
         if (listRes.data && listRes.data.keys && Array.isArray(listRes.data.keys)) {
             const available = listRes.data.keys.find(k => k.status === 'available');
@@ -133,20 +230,7 @@ async function getWebsiteLicenseKey() {
         console.warn('⚠️ Website license list API:', e.message);
     }
 
-    try {
-        // 2. Try to generate a new key on website database
-        const genRes = await axios.post(`${WEBSITE_URL}/api/license`, { count: 1 }, { timeout: 4000 });
-        if (genRes.data && genRes.data.keys && genRes.data.keys.length > 0) {
-            const k = genRes.data.keys[0];
-            const generated = typeof k === 'string' ? k : (k.key || generateLicenseKey());
-            console.log('✅ Generated new key on website database:', generated);
-            return generated;
-        }
-    } catch (e) {
-        console.warn('⚠️ Website license generate API:', e.message);
-    }
-
-    // 3. Fallback format
+    // 4. Fallback format
     return generateLicenseKey();
 }
 
@@ -171,7 +255,7 @@ async function syncFromGoogleSheets() {
         console.log('🔄 Syncing database from Google Sheets...');
         const response = await axios.post(GOOGLE_SHEET_URL, { action: 'get_all_data' });
         if (response.data && response.data.success) {
-            const { users, orders } = response.data;
+            const { users, orders, licenses } = response.data;
             if (users) {
                 const localUsers = loadUsers();
                 Object.keys(users).forEach(uid => {
@@ -185,6 +269,13 @@ async function syncFromGoogleSheets() {
                     localOrders[oid] = { ...localOrders[oid], ...orders[oid] };
                 });
                 saveOrders(localOrders);
+            }
+            if (licenses) {
+                const localLicenses = loadLicenses();
+                Object.keys(licenses).forEach(lid => {
+                    localLicenses[lid] = { ...localLicenses[lid], ...licenses[lid] };
+                });
+                saveLicenses(localLicenses);
             }
             console.log('✅ Google Sheets sync complete!');
         }
@@ -798,7 +889,7 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
     }
 
     // Generate/Fetch Valid License Key Synced with Website Database
-    const licenseKey = await getWebsiteLicenseKey();
+    const licenseKey = await getWebsiteLicenseKey(order);
     order.status = 'APPROVED';
     order.license_key = licenseKey;
     order.approved_at = new Date().toISOString();
@@ -806,15 +897,16 @@ async function processOrderApproval(identifier, adminId, replyChatId, sourceMsg 
     orders[orderId] = order;
     saveOrders(orders);
 
-    // Save License Record
+    // Save / Update License Record
     const licenses = loadLicenses();
     licenses[licenseKey] = {
         key: licenseKey,
         order_id: orderId,
         user_id: order.user_id,
         email: order.email,
-        status: 'available',
-        created_at: new Date().toISOString()
+        status: 'used',
+        created_at: licenses[licenseKey]?.created_at || new Date().toISOString(),
+        assigned_at: new Date().toISOString()
     };
     saveLicenses(licenses);
 
@@ -1665,12 +1757,16 @@ async function handleMessage(msg) {
         if (isHelpCmd) {
             const helpMsg = `👑 <b>ICE Bot Admin Command Center / የአድሚን ትዕዛዞች</b>\n\n` +
                 `✅ <b>/approve [order_id / user_id / email]</b>\n` +
-                `└ <i>Approve order, sync license key with website DB, award inviter +150 ETB, and send credentials to student.</i>\n` +
+                `└ <i>Approve order, issue license key from website API, award inviter +150 ETB, and send credentials to student.</i>\n` +
                 `💡 <i>Tip: Typing <code>/approve</code> or <code>approved</code> alone automatically approves the latest pending order!</i>\n\n` +
                 `❌ <b>/reject [order_id / user_id]</b>\n` +
                 `└ <i>Reject payment verification and notify student.</i>\n\n` +
                 `📋 <b>/pending</b> or <b>/orders</b>\n` +
                 `└ <i>List all orders currently waiting for verification.</i>\n\n` +
+                `🔑 <b>/addkeys &lt;keys&gt;</b>\n` +
+                `└ <i>Import pre-generated license keys from website into the bot's reserve pool.</i>\n\n` +
+                `📊 <b>/keys</b> or <b>/pool</b>\n` +
+                `└ <i>Check available and used license keys in the pool.</i>\n\n` +
                 `📊 <b>/stats</b>\n` +
                 `└ <i>View detailed user breakdown (Leads vs Enrolled Students).</i>\n\n` +
                 `🔑 <b>/license &lt;email&gt;</b>\n` +
@@ -1691,7 +1787,69 @@ async function handleMessage(msg) {
             return;
         }
 
-        // 5. /stats
+        // 5. /addkeys or /addkey (Manual pool import)
+        if (text.startsWith('/addkeys') || text.startsWith('/addkey') || text.startsWith('/importkeys') || text.startsWith('/addpool')) {
+            const raw = text.replace(/^\/(addkeys|addkey|importkeys|addpool)/i, '').trim();
+            if (!raw) {
+                await sendTelegram('sendMessage', {
+                    chat_id: chatId,
+                    text: `⚠️ <b>Usage:</b> <code>/addkeys &lt;keys&gt;</code>\n\nYou can paste multiple keys separated by space, commas, or new lines.\nExample:\n<code>/addkeys ITP-ABCDE-12345-XXXXX ITP-FGHIJ-67890-YYYYY</code>`,
+                    parse_mode: 'HTML'
+                });
+                return;
+            }
+
+            const extracted = raw.match(/ITP-[A-Za-z0-9\-]+/gi) || raw.split(/[\s,;]+/).filter(k => k.trim().length >= 6);
+            if (!extracted || extracted.length === 0) {
+                await sendTelegram('sendMessage', {
+                    chat_id: chatId,
+                    text: `⚠️ <b>No valid keys detected.</b> Please check the format and try again.`,
+                    parse_mode: 'HTML'
+                });
+                return;
+            }
+
+            const result = addLicenseKeysToPool(extracted);
+            await sendTelegram('sendMessage', {
+                chat_id: chatId,
+                text: `✅ <b>License Keys Added to Pool! / የላይሰንስ ቁልፎች ተጨምረዋል!</b>\n\n` +
+                      `➕ <b>New Keys Added:</b> ${result.added}\n` +
+                      `🟢 <b>Total Available in Pool:</b> ${result.total}\n\n` +
+                      `<i>These keys will be automatically assigned to students when payments are approved!</i>`,
+                parse_mode: 'HTML'
+            });
+            return;
+        }
+
+        // 6. /keys or /pool (Check reserve pool status)
+        if (text === '/keys' || text === '/pool' || text === '/licensepool' || text === '🔑 keys' || text === '🔑 pool') {
+            const stats = getLicensePoolStats();
+            let preview = '';
+            if (stats.availableKeys.length > 0) {
+                preview = stats.availableKeys.slice(0, 15).map((k, i) => `${i + 1}. <code>${k}</code>`).join('\n');
+                if (stats.availableKeys.length > 15) {
+                    preview += `\n<i>...and ${stats.availableKeys.length - 15} more</i>`;
+                }
+            } else {
+                preview = `<i>No available keys in reserve pool. Bot will use direct website API.</i>`;
+            }
+
+            const poolMsg = `🔑 <b>ICE License Key Pool Status / የላይሰንስ ቁልፎች ክምችት</b>\n\n` +
+                `🟢 <b>Available in Pool:</b> ${stats.availableCount}\n` +
+                `🔴 <b>Assigned / Used:</b> ${stats.usedCount}\n` +
+                `📦 <b>Total Registered:</b> ${stats.total}\n\n` +
+                `📋 <b>Available Keys Preview:</b>\n${preview}\n\n` +
+                `➕ <b>To add more pre-generated keys:</b>\n<code>/addkeys &lt;key1&gt; &lt;key2&gt; ...</code>`;
+
+            await sendTelegram('sendMessage', {
+                chat_id: chatId,
+                text: poolMsg,
+                parse_mode: 'HTML'
+            });
+            return;
+        }
+
+        // 7. /stats
         if (isStatsCmd) {
             const allUsers = Object.keys(users);
             const enrolledUsers = allUsers.filter(uid => users[uid]?.has_purchased === true);
@@ -1716,18 +1874,19 @@ async function handleMessage(msg) {
             return;
         }
 
-        // 6. /license <email> (Synced with Website DB)
+        // 8. /license <email> (Synced with Website DB)
         if (text.startsWith('/license')) {
             const parts = text.split(' ');
             const targetEmail = parts[1] ? parts[1].trim() : 'student@ice.com';
-            const key = await getWebsiteLicenseKey();
+            const key = await getWebsiteLicenseKey({ email: targetEmail, name: 'Student' });
 
             const licenses = loadLicenses();
             licenses[key] = {
                 key,
                 email: targetEmail,
-                status: 'available',
-                created_at: new Date().toISOString()
+                status: 'used',
+                created_at: licenses[key]?.created_at || new Date().toISOString(),
+                assigned_at: new Date().toISOString()
             };
             saveLicenses(licenses);
 
