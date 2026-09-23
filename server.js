@@ -20,7 +20,7 @@ const ADMIN_IDS = (process.env.ADMIN_IDS || '5569487012').split(',').map(id => i
 const WEB_URL = process.env.WEB_URL || 'https://icer.onrender.com';
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://www.icepsychology.com';
 const WEBSITE_API_URL = process.env.WEBSITE_API_URL || 'https://www.icepsychology.com/api/bot/issue-license';
-const BOT_SECRET = process.env.BOT_SECRET || process.env.BOT_INTERNAL_SECRET || 'ice-secret-2024';
+const BOT_SECRET = process.env.BOT_SECRET || process.env.BOT_INTERNAL_SECRET || 'ice-secret-1234';
 const BOT_INTERNAL_SECRET = BOT_SECRET;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'ice_registration_bot';
