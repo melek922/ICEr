@@ -71,18 +71,48 @@ function doPost(e) {
     // 3. Order Approved
     if (action === "order_approved") {
       updateOrderApproval(ordersSheet, data.order_id, data.license_key);
-      licensesSheet.appendRow([
+      updateOrAddRow(licensesSheet, 0, data.license_key, [
         data.license_key,
-        data.order_id,
-        data.user_id,
-        data.email,
-        "available",
+        data.order_id || "",
+        data.user_id || "",
+        data.email || "",
+        "used",
         new Date().toLocaleString()
       ]);
       return createResponse({ success: true });
     }
 
-    // 4. Payout Request
+    // 4. Add License Keys to Pool (Bulk Import)
+    if (action === "add_license_keys") {
+      if (data.keys && Array.isArray(data.keys)) {
+        data.keys.forEach(function(k) {
+          updateOrAddRow(licensesSheet, 0, k, [
+            k,
+            "",
+            "",
+            "",
+            "available",
+            new Date().toLocaleString()
+          ]);
+        });
+      }
+      return createResponse({ success: true });
+    }
+
+    // 5. Use License Key
+    if (action === "use_license_key") {
+      updateOrAddRow(licensesSheet, 0, data.key, [
+        data.key,
+        data.order_id || "",
+        data.user_id || "",
+        data.email || "",
+        "used",
+        new Date().toLocaleString()
+      ]);
+      return createResponse({ success: true });
+    }
+
+    // 6. Payout Request
     if (action === "payout_request") {
       payoutsSheet.appendRow([
         new Date().toLocaleString(),
@@ -95,11 +125,12 @@ function doPost(e) {
       return createResponse({ success: true });
     }
 
-    // 5. Get All Data on Server Startup
+    // 7. Get All Data on Server Startup
     if (action === "get_all_data") {
       const usersData = extractSheetData(usersSheet);
       const ordersData = extractSheetData(ordersSheet);
-      return createResponse({ success: true, users: usersData, orders: ordersData });
+      const licensesData = extractSheetData(licensesSheet);
+      return createResponse({ success: true, users: usersData, orders: ordersData, licenses: licensesData });
     }
 
     return createResponse({ success: false, error: "Unknown action" });
