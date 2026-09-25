@@ -766,7 +766,6 @@ app.get('/api/users', (req, res) => {
 
 const MAIN_KEYBOARD_EN = {
     keyboard: [
-        [{ text: "💎 Enroll / Verify Payment (WebApp)", web_app: { url: WEB_URL } }],
         [{ text: "👥 Referral Link" }, { text: "💰 My Balance" }],
         [{ text: "🔑 My License Key" }, { text: "📥 Withdraw Commission" }],
         [{ text: "🌐 Open Website" }, { text: "📞 Support" }]
@@ -1552,13 +1551,19 @@ async function handleMessage(msg) {
             `4️⃣ <b>Negadras Tier (50% Off):</b> <code>3,000 ETB / $15</code>\n` +
             `   └ <i>Special 50% discount for Negadras Level 2 students</i>\n\n` +
             `🎁 <b>Broker Partner Discount:</b> <i>Get 30% OFF if you register with our partner broker link!</i>\n\n` +
-            `👇 <b>Tap "💎 Enroll / Verify Payment" below to select your package, or send your payment screenshot directly here:</b>`;
+            `────────────────────\n` +
+            `💎 <b>ለመመዝገብ፦</b> ከስር በስተግራ ያለውን ሰማያዊ <b>"ICE Registration"</b> አዝራር ይጫኑ ወይም ከታች ያለውን ሰማያዊ አዝራር ይንኩ፦\n` +
+            `💎 <b>To Register:</b> Tap the blue <b>"ICE Registration"</b> button at the bottom-left or tap below:`;
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: welcomeMsg,
             parse_mode: 'HTML',
-            reply_markup: MAIN_KEYBOARD_EN
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "💎 ICE Registration (Open App)", web_app: { url: WEB_URL } }]
+                ]
+            }
         });
         return;
     }
@@ -1617,7 +1622,7 @@ async function handleMessage(msg) {
         } else {
             await sendTelegram('sendMessage', {
                 chat_id: chatId,
-                text: `⚠️ <b>No active License Key found.</b>\n\nTo enroll and get your key, tap <b>"💎 Enroll / Verify Payment"</b> below or send your payment receipt photo directly here.`,
+                text: `⚠️ <b>No active License Key found.</b>\n\nTo enroll and get your key, tap the blue <b>"ICE Registration"</b> button at the bottom-left or send your payment receipt photo directly here.`,
                 parse_mode: 'HTML',
                 reply_markup: MAIN_KEYBOARD_EN
             });
