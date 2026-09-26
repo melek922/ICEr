@@ -1233,11 +1233,17 @@ async function handleMessage(msg) {
 
     const users = loadUsers();
 
-    // Ensure User Record Exists
+    // Ensure User Record Exists & Sync to Google Sheets
+    const isStartCmd = text.startsWith('/start');
+    const userFirstName = msg.from ? msg.from.first_name : '';
+    const userLastName = msg.from ? msg.from.last_name : '';
+    const fullName = `${userFirstName || 'Trader'} ${userLastName || ''}`.trim();
+    const username = msg.from && msg.from.username ? `@${msg.from.username}` : (msg.from && msg.from.first_name ? msg.from.first_name : 'N/A');
+
     if (!users[userId]) {
         users[userId] = {
-            name: `${msg.from.first_name || 'Trader'} ${msg.from.last_name || ''}`.trim(),
-            username: msg.from.username || 'N/A',
+            name: fullName,
+            username: username,
             points: 0,
             joined_at: new Date().toISOString()
         };
@@ -1253,6 +1259,12 @@ async function handleMessage(msg) {
                 });
             }
         }
+        saveUsers(users);
+        syncToGoogle('sync_user', { user_id: userId, ...users[userId] });
+    } else if (isStartCmd) {
+        // Refresh user details and ensure synced on every /start
+        users[userId].name = fullName || users[userId].name;
+        users[userId].username = username !== 'N/A' ? username : (users[userId].username || 'N/A');
         saveUsers(users);
         syncToGoogle('sync_user', { user_id: userId, ...users[userId] });
     }
@@ -1552,18 +1564,14 @@ async function handleMessage(msg) {
             `   └ <i>Special 50% discount for Negadras Level 2 students</i>\n\n` +
             `🎁 <b>Broker Partner Discount:</b> <i>Get 30% OFF if you register with our partner broker link!</i>\n\n` +
             `────────────────────\n` +
-            `💎 <b>ለመመዝገብ፦</b> ከስር በስተግራ ያለውን ሰማያዊ <b>"ICE Registration"</b> አዝራር ይጫኑ ወይም ከታች ያለውን ሰማያዊ አዝራር ይንኩ፦\n` +
-            `💎 <b>To Register:</b> Tap the blue <b>"ICE Registration"</b> button at the bottom-left or tap below:`;
+            `💎 <b>ለመመዝገብ፦</b> ከስር በስተግራ ያለውን ሰማያዊ <b>"ICE Registration"</b> አዝራር ይጫኑ።\n` +
+            `💎 <b>To Register:</b> Tap the blue <b>"ICE Registration"</b> button at the bottom-left.`;
 
         await sendTelegram('sendMessage', {
             chat_id: chatId,
             text: welcomeMsg,
             parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "💎 ICE Registration (Open App)", web_app: { url: WEB_URL } }]
-                ]
-            }
+            reply_markup: MAIN_KEYBOARD_EN
         });
         return;
     }
